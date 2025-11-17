@@ -2,11 +2,13 @@ import sys
 
 import rapidfuzz
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QAbstractTableModel
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton,
-    QHBoxLayout, QVBoxLayout, QLineEdit
+    QHBoxLayout, QVBoxLayout, QLineEdit,
+    QTableView, QTableWidget, QListWidget, QTableWidgetItem
 )
+# from PySide6.QtGui import QFocusEvent
 
 # def get_sorted_dictionary(mylist, compared_string):
 #     dict_of_results = {}
@@ -30,28 +32,55 @@ from PySide6.QtWidgets import (
 #     for k,v in sorted_dict.items():
 #         print(f"{k} -> {v}")
 
-# class Table():
-#     def __init__(self) -> None:
-#
-#         self.table = QTableView()
+
+class Table():
+    def __init__(self, mydict) -> None:
+        super().__init__()
+        self.table = QTableWidget()
+        table  = self.table 
+        table.setRowCount(len(mydict.keys()))
+        header_labels = ["Name", "Tags"]
+        table.setColumnCount(len(header_labels))
+        table.setHorizontalHeaderLabels(header_labels)
+
+        for row, (key, value) in enumerate(mydict.items()):
+            table.setItem(row, 0, QTableWidgetItem(key))
+            table.setItem(row, 1, QTableWidgetItem(value))
+
+class LineEdit(QLineEdit):
+    def focusInEvent(self, event, dropdown, mylist):
+        print("Cursor in QLineEdit")
+
+        super().focusInEvent(event)
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
+        self.mydict = self.return_input_list()
         self.setWindowTitle("MyApp")
-        # self.table = Table()
-        button = QPushButton("Pressme")
-        line = QLineEdit()
+        self.table = Table(self.mydict)
+        self.button = QPushButton("Pressme")
+        self.line = LineEdit()
+        self.dropdown = QListWidget()
 
+
+        self.dropdown.addItem("California")
+
+        # LAYOUT 
         upper_layout = QHBoxLayout()
-        bottom_layout = QHBoxLayout()
+        middle_layout = QHBoxLayout()
+        bottom_layout = QVBoxLayout()
+
         main_layout = QVBoxLayout()
 
-        upper_layout.addWidget(button)
-        bottom_layout.addWidget(line)
+        upper_layout.addWidget(self.button)
+        middle_layout.addWidget(self.table.table)
+        bottom_layout.addWidget(self.line)
+        bottom_layout.addWidget(self.dropdown)
 
         main_layout.addLayout(upper_layout)
+        main_layout.addLayout(middle_layout)
         main_layout.addLayout(bottom_layout)
 
         container = QWidget()
@@ -59,6 +88,23 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
 
+    def return_input_list(self):
+        mylist= ["el_num1", "el_num2", "el_num3","el_albert","el_chrissy",
+                "el_number", "el_num2b", "el_numb2", "el_num4a", "el_num4b",
+                "el_nmb41", "el_num41"]
+
+        mytags =  ["num1", "num2", "num3","albert","chrissy",
+                   "number", "num2b", "numb2", "num4a", "num4b",
+                   "nmb41", "num41"]
+
+        dict_list_tags = {}
+        for elem, tag in zip(mylist, mytags) :
+            dict_list_tags[elem] = tag
+
+        return dict_list_tags
+
+    def on_focus(self):
+        print("jelllo")
 
 def main():
     app = QApplication(sys.argv)
