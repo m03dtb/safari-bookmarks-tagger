@@ -10,31 +10,24 @@ from PySide6.QtWidgets import (
 )
 # from PySide6.QtGui import QFocusEvent
 
-# def get_sorted_dictionary(mylist, compared_string):
-#     dict_of_results = {}
-#     for element in mylist:
-#         ratio_res = rapidfuzz.fuzz.partial_ratio(element, compared_string)
-#         dict_of_results[element] = ratio_res
-#
-#     sorted_dict_of_results = dict(
-#         sorted(dict_of_results.items(), key=lambda item: item[1], reverse=True)
-#     )
-#
-#     # for key, value in sorted_dict_of_results.items():
-#     #     print(f"K: {key}, V: {value}")
-#     return sorted_dict_of_results
-#
-#
-#     mylist= ["num1", "num2", "num3","albert","chrissy", "number", "num2b", "numb2", "num4a", "num4b", "nmb41", "num41"]
-#     compared_string ="num41"
-#     sorted_dict = get_sorted_dictionary(mylist, compared_string)
-#
-#     for k,v in sorted_dict.items():
-#         print(f"{k} -> {v}")
 
+# class FuzzySearch():
+#     def __init__(self, set_of_tags):
+#         super().__init__()
+#
+#     def get_sorted_dictionary(mylist, compared_string, set_of_tags):
+#         dict_of_results = {}
+#         for element in mylist:
+#             ratio_res = rapidfuzz.fuzz.partial_ratio(element, compared_string)
+#             dict_of_results[element] = ratio_res
+#
+#         sorted_dict_of_results = dict(
+#             sorted(dict_of_results.items(), key=lambda item: item[1], reverse=True)
+#         )
+#         return sorted_dict_of_results
 
 class Table():
-    def __init__(self, mydict) -> None:
+    def __init__(self, mydict, line) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
@@ -49,7 +42,19 @@ class Table():
             table.setItem(row, 1, QTableWidgetItem(value))
 
     def get_all_tags(self):
-       return set(self.mydict.values())
+        set_of_tags = set(self.mydict.values())
+        return set_of_tags
+
+    def filter_table(self, line):
+        self.line = line 
+        self.line.clear()
+        self.line.textChanged.connect(self.on_filter_table)
+
+    def on_filter_table(self):
+        user_input = self.line.text()
+        print("USER INPUT: ", user_input)
+        
+
 
 class LineEdit(QLineEdit):
     def __init__(self, table_obj, dropdown, *args, **kwargs):
@@ -73,15 +78,17 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
+        self.line = None 
         self.mydict = self.return_input_list()
         self.setWindowTitle("MyApp")
-        self.table = Table(self.mydict)
+        self.table = Table(self.mydict, self.line)
         self.button = QPushButton("Pressme")
         self.dropdown = QListWidget()
         self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
 
         # self.dropdown.addItem("California")
+        self.table.filter_table(self.line)
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
