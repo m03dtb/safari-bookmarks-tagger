@@ -1,14 +1,11 @@
 import sys
-
-import rapidfuzz
-
+from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem
 )
-# from PySide6.QtGui import QFocusEvent
 
 
 # class FuzzySearch():
@@ -31,6 +28,8 @@ class Table():
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
+        self.all_tags = self.get_all_tags()
+
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
         header_labels = ["Name", "Tags"]
@@ -50,10 +49,25 @@ class Table():
         self.line.clear()
         self.line.textChanged.connect(self.on_filter_table)
 
-    def on_filter_table(self):
-        user_input = self.line.text()
-        print("USER INPUT: ", user_input)
-        
+    def on_filter_table(self, text: str):
+        # user_input = self.line.text()
+        user_input = text.strip() 
+        if len(user_input) < 2:
+            for row in range(self.table.rowCount()):
+                self.table.setRowHidden(row, False)
+            return
+
+        dict_of_results = {}
+        for tag in self.all_tags:
+            tag_str = str(tag)
+            score = rapidfuzz.fuzz.ratio(tag_str, user_input)
+            dict_of_results[tag_str] = score 
+
+        for row in range(self.table.rowCount()):
+            tag = self.table.item(row, 1).text()
+            score = dict_of_results.get(tag, 0)
+            self.table.setRowHidden(row, score < 50) 
+
 
 
 class LineEdit(QLineEdit):
@@ -61,6 +75,7 @@ class LineEdit(QLineEdit):
         super().__init__(*args, **kwargs)
         self.table_obj = table_obj
         self.dropdown = dropdown
+        self.textChanged.connect(self.on_text_changed)
 
     def focusInEvent(self, event):
         super().focusInEvent(event)
@@ -73,6 +88,27 @@ class LineEdit(QLineEdit):
     def focusOutEvent(self, event):
         super().focusOutEvent(event)
         self.dropdown.hide()
+
+    def on_text_changed(self, text: str):
+        user_input = text.strip()
+        all_tags = list(self.table_obj.get_all_tags())
+
+        self.dropdown.clear()
+
+        if len(user_input) < 1:
+            for tag in all_tags:
+                self.dropdown.addItem(tag)
+            return 
+
+        scored = []
+        for tag in all_tags:
+            score = fuzz.ratio(str(tag), user_input)
+            scored.append((score, tag))
+        scored.sort(reverse=True)
+
+        for score, tag in scored: 
+            if score >= 40: 
+                self.dropdown.addItem(tag)
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -88,7 +124,7 @@ class MainWindow(QMainWindow):
         self.line = LineEdit(self.table, self.dropdown)
 
         # self.dropdown.addItem("California")
-        self.table.filter_table(self.line)
+        # self.table.filter_table(self.line)
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
@@ -129,10 +165,8 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-
     window = MainWindow()
     window.show()
-
     app.exec()
 
 if __name__ == "__main__":
