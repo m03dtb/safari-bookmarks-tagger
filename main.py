@@ -49,24 +49,24 @@ class Table():
         self.line.clear()
         self.line.textChanged.connect(self.on_filter_table)
 
-    def on_filter_table(self, text: str):
-        # user_input = self.line.text()
-        user_input = text.strip() 
-        if len(user_input) < 2:
-            for row in range(self.table.rowCount()):
-                self.table.setRowHidden(row, False)
-            return
-
-        dict_of_results = {}
-        for tag in self.all_tags:
-            tag_str = str(tag)
-            score = rapidfuzz.fuzz.ratio(tag_str, user_input)
-            dict_of_results[tag_str] = score 
-
-        for row in range(self.table.rowCount()):
-            tag = self.table.item(row, 1).text()
-            score = dict_of_results.get(tag, 0)
-            self.table.setRowHidden(row, score < 50) 
+    # def on_filter_table(self, text: str):
+    #     # user_input = self.line.text()
+    #     user_input = text.strip() 
+    #     if len(user_input) < 2:
+    #         for row in range(self.table.rowCount()):
+    #             self.table.setRowHidden(row, False)
+    #         return
+    #
+    #     dict_of_results = {}
+    #     for tag in self.all_tags:
+    #         tag_str = str(tag)
+    #         score = rapidfuzz.fuzz.ratio(tag_str, user_input)
+    #         dict_of_results[tag_str] = score 
+    #
+    #     for row in range(self.table.rowCount()):
+    #         tag = self.table.item(row, 1).text()
+    #         score = dict_of_results.get(tag, 0)
+    #         self.table.setRowHidden(row, score < 50) 
 
 
 
