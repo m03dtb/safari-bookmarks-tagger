@@ -37,6 +37,7 @@ class Table():
     def __init__(self, mydict) -> None:
         super().__init__()
         self.table = QTableWidget()
+        self.mydict = mydict
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
         header_labels = ["Name", "Tags"]
@@ -47,11 +48,22 @@ class Table():
             table.setItem(row, 0, QTableWidgetItem(key))
             table.setItem(row, 1, QTableWidgetItem(value))
 
-class LineEdit(QLineEdit):
-    def focusInEvent(self, event, dropdown, mylist):
-        print("Cursor in QLineEdit")
+    def get_all_tags(self):
+       return set(self.mydict.values())
 
+class LineEdit(QLineEdit):
+    def __init__(self, table_obj, dropdown, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.table_obj = table_obj
+        self.dropdown = dropdown
+
+    def focusInEvent(self, event):
         super().focusInEvent(event)
+        all_tags = self.table_obj.get_all_tags()
+        self.dropdown.clear()
+        for tag in all_tags:
+            self.dropdown.addItem(tag)
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -61,11 +73,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("MyApp")
         self.table = Table(self.mydict)
         self.button = QPushButton("Pressme")
-        self.line = LineEdit()
         self.dropdown = QListWidget()
+        self.line = LineEdit(self.table, self.dropdown)
 
-
-        self.dropdown.addItem("California")
+        # self.dropdown.addItem("California")
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
@@ -93,8 +104,8 @@ class MainWindow(QMainWindow):
                 "el_number", "el_num2b", "el_numb2", "el_num4a", "el_num4b",
                 "el_nmb41", "el_num41"]
 
-        mytags =  ["num1", "num2", "num3","albert","chrissy",
-                   "number", "num2b", "numb2", "num4a", "num4b",
+        mytags =  ["num1", "num2", "num3","num1","num2",
+                   "number", "num2b", "numb2", "anum2", "num4b",
                    "nmb41", "num41"]
 
         dict_list_tags = {}
