@@ -60,9 +60,6 @@ class MainWindow(QMainWindow):
 
 
 
-        
-
-
 def main():
     app = QApplication(sys.argv)
 
