@@ -1,4 +1,5 @@
 import sys
+from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel
 from PySide6.QtWidgets import (
@@ -49,26 +50,6 @@ class Table():
         self.line.clear()
         self.line.textChanged.connect(self.on_filter_table)
 
-    # def on_filter_table(self, text: str):
-    #     # user_input = self.line.text()
-    #     user_input = text.strip() 
-    #     if len(user_input) < 2:
-    #         for row in range(self.table.rowCount()):
-    #             self.table.setRowHidden(row, False)
-    #         return
-    #
-    #     dict_of_results = {}
-    #     for tag in self.all_tags:
-    #         tag_str = str(tag)
-    #         score = rapidfuzz.fuzz.ratio(tag_str, user_input)
-    #         dict_of_results[tag_str] = score 
-    #
-    #     for row in range(self.table.rowCount()):
-    #         tag = self.table.item(row, 1).text()
-    #         score = dict_of_results.get(tag, 0)
-    #         self.table.setRowHidden(row, score < 50) 
-
-
 
 class LineEdit(QLineEdit):
     def __init__(self, table_obj, dropdown, *args, **kwargs):
@@ -76,8 +57,10 @@ class LineEdit(QLineEdit):
         self.table_obj = table_obj
         self.dropdown = dropdown
         self.textChanged.connect(self.on_text_changed)
+        self.returnPressed.connect(self.on_return_pressed)  # <‑ wichtig
 
     def focusInEvent(self, event):
+        """Unfold dropdown menu if focussed and fill it with all tags"""
         super().focusInEvent(event)
         all_tags = self.table_obj.get_all_tags()
         self.dropdown.clear()
@@ -86,13 +69,14 @@ class LineEdit(QLineEdit):
             self.dropdown.addItem(tag)
 
     def focusOutEvent(self, event):
+        """Hide dropdown menu if not focussed"""
         super().focusOutEvent(event)
         self.dropdown.hide()
 
     def on_text_changed(self, text: str):
         user_input = text.strip()
         all_tags = list(self.table_obj.get_all_tags())
-
+        
         self.dropdown.clear()
 
         if len(user_input) < 1:
@@ -101,14 +85,64 @@ class LineEdit(QLineEdit):
             return 
 
         scored = []
+        # store the current fitting score of each tag
         for tag in all_tags:
             score = fuzz.ratio(str(tag), user_input)
             scored.append((score, tag))
+        # show best match on top   
         scored.sort(reverse=True)
 
         for score, tag in scored: 
-            if score >= 40: 
+            if score >= 50: 
                 self.dropdown.addItem(tag)
+
+    def on_return_pressed(self):
+        item = self.dropdown.currentItem()
+        if item is None and self.dropdown.count() > 0:
+            item = self.dropdown.item(0)
+
+        if item is None:
+            return 
+
+        tag = item.text().strip()
+
+        text = self.text()
+
+
+        before, sep, after = text.rpartition(",")
+        if sep: 
+            current = before.strip()
+        else:
+            current = text.strip()
+        if len(current) == 0:
+            new_text = tag+","
+        else:
+            new_text = current+","+tag+","
+
+        self.setText(new_text)
+        self.setCursorPosition(len(self.text()))
+        # TODO: hier weitermachen (17.11.2025)
+
+    def keyPressEvent(self, event):
+        # if user presses downkey 
+        if event.key() == Qt.Key_Down:
+            count = self.dropdown.count()
+            if count == 0:
+                return 
+
+            row = self.dropdown.currentRow()
+            if row  < 0:
+                row = 0
+            elif row < count -1:
+                row +=1 
+            else: 
+                row = 0
+            # focus on first element in dropdown menu 
+            self.dropdown.setCurrentRow(row)
+            return 
+
+        super().keyPressEvent(event)
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
