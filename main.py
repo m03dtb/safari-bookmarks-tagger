@@ -61,9 +61,13 @@ class LineEdit(QLineEdit):
         super().focusInEvent(event)
         all_tags = self.table_obj.get_all_tags()
         self.dropdown.clear()
+        self.dropdown.show()
         for tag in all_tags:
             self.dropdown.addItem(tag)
 
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        self.dropdown.hide()
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -74,6 +78,7 @@ class MainWindow(QMainWindow):
         self.table = Table(self.mydict)
         self.button = QPushButton("Pressme")
         self.dropdown = QListWidget()
+        self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
 
         # self.dropdown.addItem("California")
@@ -114,8 +119,6 @@ class MainWindow(QMainWindow):
 
         return dict_list_tags
 
-    def on_focus(self):
-        print("jelllo")
 
 def main():
     app = QApplication(sys.argv)
