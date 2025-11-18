@@ -56,8 +56,17 @@ class LineEdit(QLineEdit):
         super().__init__(*args, **kwargs)
         self.table_obj = table_obj
         self.dropdown = dropdown
+
         self.textChanged.connect(self.on_text_changed)
-        self.returnPressed.connect(self.on_return_pressed)  # <‑ wichtig
+        # Enter im LineEdit
+        self.returnPressed.connect(self.on_return_pressed)
+        # Enter/Doppelklick im Dropdown löst die gleiche Logik aus
+        self.dropdown.itemActivated.connect(self.on_dropdown_item_activated)
+
+    def on_dropdown_item_activated(self, item):
+        """Wird ausgelöst, wenn im Dropdown Enter gedrückt oder doppelt geklickt wird."""
+        # Nutzt dieselbe Logik wie Enter im LineEdit
+        self.on_return_pressed()
 
     def focusInEvent(self, event):
         """Unfold dropdown menu if focussed and fill it with all tags"""
@@ -74,59 +83,38 @@ class LineEdit(QLineEdit):
         self.dropdown.hide()
 
     def on_text_changed(self, text: str):
-
+        # Nur den Teil nach dem letzten Komma für die Suche verwenden
         _, sep, after = text.rpartition(",")
-        if sep: 
-            # if elements before comma 
+        if sep:
+            # Wenn schon Tags vor dem Komma stehen, nur den Stub danach suchen
             user_input = after.strip()
         else:
-            # if no separator (comma) > take whole text of dropdown to LineEdit
+            # Kein Komma -> kompletter Text ist der Stub
             user_input = text.strip()
-        
+
         all_tags = list(self.table_obj.get_all_tags())
         self.dropdown.clear()
 
         if len(user_input) < 1:
+            # Kein Stub -> alle Tags anzeigen
             for tag in all_tags:
                 self.dropdown.addItem(tag)
-            return 
+            return
 
         scored = []
-        # store the current fitting score of each tag
+        # aktuellen Score für jeden Tag berechnen
         for tag in all_tags:
             score = fuzz.ratio(str(tag), user_input)
             scored.append((score, tag))
-        # show best match on top   
+        # beste Treffer zuerst anzeigen
         scored.sort(reverse=True)
 
-        for score, tag in scored: 
-            if score >= 50: 
+        for score, tag in scored:
+            if score >= 50:
                 self.dropdown.addItem(tag)
 
     def on_return_pressed(self):
-        # item = self.dropdown.currentItem()
-        # if item is None and self.dropdown.count() > 0:
-        #     item = self.dropdown.item(0)
-        #
-        # if item is None:
-        #     return 
-        #
-        # tag = item.text().strip()
-        # text = self.text()
-        # before, sep, _ = text.rpartition(",")
-        #
-        # if sep: 
-        #     current = before.strip()
-        # else:
-        #     current = text.strip()
-        # if len(current) == 0:
-        #     new_text = tag+","
-        # else:
-        #     new_text = current+","+tag+","
-        #
-        # self.setText(new_text)
-        # self.setCursorPosition(len(self.text()))
-        # # TODO: hier weitermachen (17.11.2025)
+        """Tag aus der aktuellen Dropdown-Auswahl in die Zeile übernehmen."""
         item = self.dropdown.currentItem()
         if item is None and self.dropdown.count() > 0:
             item = self.dropdown.item(0)
@@ -141,17 +129,17 @@ class LineEdit(QLineEdit):
         before, sep, _ = text.rpartition(",")
 
         if sep:
-            # Es gibt schon frühere Tags: "tag1,myt"
+            # If tags already existing, e.g. "tag1,myt"
             # -> Prefix ist alles vor dem Stub + Komma
             prefix = before.strip()
             if prefix:
                 prefix = prefix + ","
         else:
-            # Kein Komma: nur ein Stub wie "myt"
+            # set no comma "myt"
             # -> kein Prefix, nur den ausgewählten Tag setzen
             prefix = ""
 
-        # Stub ("myt") wird NICHT übernommen, sondern durch 'tag' ersetzt
+        # Stub ("myt") not put into SearchBar, but is replaced by 'tag'
         new_text = prefix + tag + ","
 
         self.setText(new_text)
@@ -246,7 +234,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
