@@ -24,13 +24,22 @@ from PySide6.QtWidgets import (
 #         )
 #         return sorted_dict_of_results
 
+# class Tags(:
+#     def __init__(self, set_of_tags) -> None:
+#         super().__init__()
+#
+#
+
+
+
 class Table():
     def __init__(self, mydict, line) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
-        self.all_tags = self.get_all_tags()
+        self.set_of_tags = set(self.mydict.values())
 
+        # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
         header_labels = ["Name", "Tags"]
@@ -38,17 +47,27 @@ class Table():
         table.setHorizontalHeaderLabels(header_labels)
 
         for row, (key, value) in enumerate(mydict.items()):
+            # Name in Column 0
             table.setItem(row, 0, QTableWidgetItem(key))
+            # Tags in Column 1
             table.setItem(row, 1, QTableWidgetItem(value))
 
-    def get_all_tags(self):
-        set_of_tags = set(self.mydict.values())
-        return set_of_tags
 
-    def filter_table(self, line):
-        self.line = line 
-        self.line.clear()
-        self.line.textChanged.connect(self.on_filter_table)
+    def get_all_tags(self):
+        # self.set_of_tags = sorted(set(self.mydict.values()))
+        return sorted(self.set_of_tags) 
+
+    def update_set_of_tags(self, *, drop_element=None, add_element=None):
+        if drop_element:
+            self.set_of_tags.discard(drop_element)
+
+        if add_element:
+            self.set_of_tags.add(add_element)
+
+    # def filter_table(self, line):
+    #     self.line = line 
+    #     self.line.clear()
+    #     self.line.textChanged.connect(self.on_filter_table)
 
 
 class LineEdit(QLineEdit):
@@ -57,6 +76,7 @@ class LineEdit(QLineEdit):
         self.table_obj = table_obj
         self.dropdown = dropdown
 
+        # KEY PRESSING ELEMENTS 
         self.textChanged.connect(self.on_text_changed)
         # Enter im LineEdit
         self.returnPressed.connect(self.on_return_pressed)
@@ -64,7 +84,7 @@ class LineEdit(QLineEdit):
         self.dropdown.itemActivated.connect(self.on_dropdown_item_activated)
 
     def on_dropdown_item_activated(self, item):
-        """Wird ausgelöst, wenn im Dropdown Enter gedrückt oder doppelt geklickt wird."""
+        """Is called when pressed 'return' in the dropdown menu"""
         # Nutzt dieselbe Logik wie Enter im LineEdit
         self.on_return_pressed()
 
@@ -142,12 +162,19 @@ class LineEdit(QLineEdit):
         # Stub ("myt") not put into SearchBar, but is replaced by 'tag'
         new_text = prefix + tag + ","
 
+        # Zuerst die globale Tag-Menge aktualisieren, damit on_text_changed
+        # (das durch setText ausgelöst wird) bereits den neuen Stand sieht
+        self.table_obj.update_set_of_tags(drop_element=tag)
+
+        # Danach Text setzen -> löst on_text_changed mit aktualisierter Tagliste aus
         self.setText(new_text)
         self.setCursorPosition(len(self.text()))
+
 
     def keyPressEvent(self, event):
         # if user presses downkey 
         if event.key() == Qt.Key_Down:
+            # ON KEY_DOWN:
             # count lines in dropdown
             count = self.dropdown.count()
             # if no entries in dropdown > do not open dropdown
@@ -185,6 +212,7 @@ class MainWindow(QMainWindow):
         self.dropdown = QListWidget()
         self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
+        self.set_of_tags = None 
 
         # self.dropdown.addItem("California")
         # self.table.filter_table(self.line)
@@ -234,6 +262,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
