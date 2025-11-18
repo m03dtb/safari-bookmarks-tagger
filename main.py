@@ -43,12 +43,13 @@ class Table():
         # immer aktuelle verfügbare Tags zurückgeben
         return sorted(self.set_of_tags)
 
-    def filter_table(self, filter_text: str):
+    def filter_table(self, filter_text: str, used_tags=None):
         """Zeilen der Tabelle anhand eines einfachen Textfilters ein-/ausblenden.
             filter_text: str -> comma separated tags
         """
         table = self.table
         filter_text = (filter_text or "").strip().lower()
+        used_tags = used_tags or set()
         
         # create filter_tags list (deleting spaces and empty strings)
         filter_tags = [
@@ -56,6 +57,8 @@ class Table():
             for tag in filter_text.split(",")
             if tag.strip()
         ]
+
+        visible_tags = set()
 
         for row in range(table.rowCount()):
             item = table.item(row, 1)  # Spalte 1 = Tags-Spalte
@@ -65,16 +68,15 @@ class Table():
                 for tag in tags.split(",")
                 if tag.strip()
             ]
+            match = all(ftag in row_tags for ftag in filter_tags)
+            table.setRowHidden(row, not match)
 
-            if not filter_tags:
-                # Kein Filter -> alle Zeilen anzeigen
-                table.setRowHidden(row, False)
-            else:
-                # Zeile soll sichtbar sein, wenn ALLE Filter-Tags in row_tags vorkommen,
-                # auch wenn die Zeile zusätzliche Tags enthält.
-                match = all(ftag in row_tags for ftag in filter_tags)
-                table.setRowHidden(row, not match)
+            if match:
+                visible_tags.update(row_tags)
 
+        # available tags, i.e. tags of visible table rows minus those selected via dropdown
+        self.set_of_tags = visible_tags - used_tags
+                
 
 class LineEdit(QLineEdit):
     def __init__(self, table_obj, dropdown, *args, **kwargs):
@@ -90,12 +92,12 @@ class LineEdit(QLineEdit):
         self.dropdown.itemActivated.connect(self.on_dropdown_item_activated)
 
     def on_dropdown_item_activated(self, item):
-        """Is called when pressed 'return' in the dropdown menu"""
+        """Called when pressed 'return' in the dropdown menu"""
         # Nutzt dieselbe Logik wie Enter im LineEdit
         self.on_return_pressed()
 
     def focusInEvent(self, event):
-        """Unfold dropdown menu if focussed and fill it with all tags"""
+        """Unfold dropdown menu if focused and fill it with all tags"""
         super().focusInEvent(event)
         all_tags = self.table_obj.get_all_tags()
         self.dropdown.clear()
@@ -104,7 +106,7 @@ class LineEdit(QLineEdit):
             self.dropdown.addItem(tag)
 
     def focusOutEvent(self, event):
-        """Hide dropdown menu if not focussed"""
+        """Hide dropdown menu if not focused"""
         super().focusOutEvent(event)
         self.dropdown.hide()
 
@@ -114,7 +116,8 @@ class LineEdit(QLineEdit):
         used_tags = set(parts)
 
         # still available tags = all_tags_full minus used_tags
-        self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
+        # self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
+
 
         # use only the part AFTER the last comma in SearchBar
         _ , sep, after = text.rpartition(",")
@@ -135,7 +138,7 @@ class LineEdit(QLineEdit):
         else:
             filter_text = ""
 
-        self.table_obj.filter_table(filter_text)
+        self.table_obj.filter_table(filter_text, used_tags)
 
         all_tags = list(self.table_obj.get_all_tags())
         self.dropdown.clear()
@@ -217,6 +220,7 @@ class LineEdit(QLineEdit):
                 row = 0 # if focus on last row: go to first row (wrap-around)    
             # focus on first element in dropdown menu 
             self.dropdown.setCurrentRow(row)
+
             return 
 
         super().keyPressEvent(event)
