@@ -9,36 +9,21 @@ from PySide6.QtWidgets import (
 )
 
 
-# class FuzzySearch():
-#     def __init__(self, set_of_tags):
-#         super().__init__()
-#
-#     def get_sorted_dictionary(mylist, compared_string, set_of_tags):
-#         dict_of_results = {}
-#         for element in mylist:
-#             ratio_res = rapidfuzz.fuzz.partial_ratio(element, compared_string)
-#             dict_of_results[element] = ratio_res
-#
-#         sorted_dict_of_results = dict(
-#             sorted(dict_of_results.items(), key=lambda item: item[1], reverse=True)
-#         )
-#         return sorted_dict_of_results
-
-# class Tags(:
-#     def __init__(self, set_of_tags) -> None:
-#         super().__init__()
-#
-#
-
-
-
 class Table():
     def __init__(self, mydict, line) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
-        self.all_tags_full = set(self.mydict.values())
-        self.set_of_tags = set(self.all_tags_full)
+        # Grundmenge aller EINZELNEN Tags aus dem Dict aufbauen
+        all_tags = set()
+        for value in self.mydict.values():
+            for tag in value.split(","):
+                tag = tag.strip()
+                if tag:
+                    all_tags.add(tag)
+        # unveränderliche Basis-Menge und aktuell verfügbare Tags
+        self.all_tags_full = set(all_tags)
+        self.set_of_tags = set(all_tags)
 
         # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
@@ -55,20 +40,40 @@ class Table():
 
 
     def get_all_tags(self):
-        # self.set_of_tags = sorted(set(self.mydict.values()))
-        return sorted(self.set_of_tags) 
+        # immer aktuelle verfügbare Tags zurückgeben
+        return sorted(self.set_of_tags)
 
-    def update_set_of_tags(self, *, drop_element=None, add_element=None):
-        if drop_element:
-            self.set_of_tags.discard(drop_element)
+    def filter_table(self, filter_text: str):
+        """Zeilen der Tabelle anhand eines einfachen Textfilters ein-/ausblenden.
+            filter_text: str -> comma separated tags
+        """
+        table = self.table
+        filter_text = (filter_text or "").strip().lower()
+        
+        # create filter_tags list (deleting spaces and empty strings)
+        filter_tags = [
+            tag.strip()
+            for tag in filter_text.split(",")
+            if tag.strip()
+        ]
 
-        if add_element:
-            self.set_of_tags.add(add_element)
+        for row in range(table.rowCount()):
+            item = table.item(row, 1)  # Spalte 1 = Tags-Spalte
+            tags = item.text().lower() if item else ""
+            row_tags = [
+                tag.strip()
+                for tag in tags.split(",")
+                if tag.strip()
+            ]
 
-    # def filter_table(self, line):
-    #     self.line = line 
-    #     self.line.clear()
-    #     self.line.textChanged.connect(self.on_filter_table)
+            if not filter_tags:
+                # Kein Filter -> alle Zeilen anzeigen
+                table.setRowHidden(row, False)
+            else:
+                # Zeile soll sichtbar sein, wenn ALLE Filter-Tags in row_tags vorkommen,
+                # auch wenn die Zeile zusätzliche Tags enthält.
+                match = all(ftag in row_tags for ftag in filter_tags)
+                table.setRowHidden(row, not match)
 
 
 class LineEdit(QLineEdit):
@@ -111,14 +116,26 @@ class LineEdit(QLineEdit):
         # still available tags = all_tags_full minus used_tags
         self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
 
-        # Nur den Teil nach dem letzten Komma für die Suche verwenden
-        _, sep, after = text.rpartition(",")
+        # use only the part AFTER the last comma in SearchBar
+        _ , sep, after = text.rpartition(",")
         if sep:
             # Wenn schon Tags vor dem Komma stehen, nur den Stub danach suchen
             user_input = after.strip()
         else:
             # Kein Komma -> kompletter Text ist der Stub
             user_input = text.strip()
+
+        # Tabelle filtern:
+        # - wenn noch ein Stub eingegeben wird: nach dem Stub filtern
+        # - sonst (kein Stub, aber schon Tags gewählt): nach dem letzten Tag filtern
+        if user_input:
+            filter_text = user_input
+        elif parts:
+            filter_text = parts[-1]
+        else:
+            filter_text = ""
+
+        self.table_obj.filter_table(filter_text)
 
         all_tags = list(self.table_obj.get_all_tags())
         self.dropdown.clear()
@@ -170,11 +187,8 @@ class LineEdit(QLineEdit):
         # Stub ("myt") not put into SearchBar, but is replaced by 'tag'
         new_text = prefix + tag + ","
 
-        # Zuerst die globale Tag-Menge aktualisieren, damit on_text_changed
-        # (das durch setText ausgelöst wird) bereits den neuen Stand sieht
-        self.table_obj.update_set_of_tags(drop_element=tag)
-
-        # Danach Text setzen -> löst on_text_changed mit aktualisierter Tagliste aus
+        # Text setzen -> löst on_text_changed aus,
+        # das set_of_tags anhand des neuen Inhalts aktualisiert
         self.setText(new_text)
         self.setCursorPosition(len(self.text()))
 
@@ -220,14 +234,12 @@ class MainWindow(QMainWindow):
         self.dropdown = QListWidget()
         self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
-        self.set_of_tags = None 
-
-        # self.dropdown.addItem("California")
-        # self.table.filter_table(self.line)
+        # self.set_of_tags = None 
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
         middle_layout = QHBoxLayout()
+
         bottom_layout = QVBoxLayout()
 
         main_layout = QVBoxLayout()
@@ -251,9 +263,9 @@ class MainWindow(QMainWindow):
                 "el_number", "el_num2b", "el_numb2", "el_num4a", "el_num4b",
                 "el_nmb41", "el_num41"]
 
-        mytags =  ["num1", "num2", "num3","num1","num2",
+        mytags =  ["num1", "num2", "num3,num41,num4","num1","num2",
                    "number", "num2b", "numb2", "anum2", "num4b",
-                   "nmb41", "num41"]
+                   "nmb41", "num41,num2"]
 
         dict_list_tags = {}
         for elem, tag in zip(mylist, mytags) :
@@ -270,4 +282,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
