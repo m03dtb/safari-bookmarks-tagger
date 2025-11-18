@@ -11,7 +11,7 @@ from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton,
-    QHBoxLayout, QVBoxLayout, QLineEdit,
+    QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem
 )
 
@@ -83,6 +83,14 @@ class Table():
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
+
+        # define colors 
+        self.col_name = "#000000"
+        self.col_url = "#0000ff"
+        self.col_tags = "#008000"
+        self.col_folders = "#888888"
+    
+
         # Grundmenge aller EINZELNEN Tags aus dem Dict aufbauen
         all_tags = set()
         for value in self.mydict.values():
@@ -97,16 +105,48 @@ class Table():
         # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
-        header_labels = ["Name", "Tags"]
+        header_labels = ["Name" ]
         table.setColumnCount(len(header_labels))
         table.setHorizontalHeaderLabels(header_labels)
 
-        for row, (key, value) in enumerate(mydict.items()):
-            # Name in Column 0
-            table.setItem(row, 0, QTableWidgetItem(key))
-            # Tags in Column 1
-            table.setItem(row, 1, QTableWidgetItem(value))
+        # for row, (key, value) in enumerate(mydict.items()):
+        #     # Name in Column 0
+        #     table.setItem(row, 0, QTableWidgetItem(key))
+        #     # Tags in Column 1
+        #     table.setItem(row, 1, QTableWidgetItem(value))
+        #
+        #     display_text = (
+        #         f'<div style="font-weight:bold; color:{self.col_name}; display:block; padding:2px 0px;">{title_html}</div><br>'
+        #         f'<span style="color:{self.col_url};">{url_html}</span><br>'
+        #         f'<span style="color:{self.col_tags};">{tags_html}</span><br>'
+        #         f'<span style="color:{self.col_folders};">{folders_html}</span>'
+        #         f'<div style="margin:0; padding:0px;">'
+        #         f'    <hr style="border:0; border-top:0px solid {self.col_name}; margin:0; padding:0;">'
+        #         f'</div>'
+        #     )
 
+        for row, (key, value) in enumerate(mydict.items()):
+            title_html = key
+            url_html = "https://example.com"   # hier deine echte URL einsetzen
+            tags_html = value
+
+            display_text = (
+                f'<div style="font-weight:bold; color:{self.col_name};">{title_html}</div>'
+                f'<span style="color:{self.col_url};">{url_html}</span><br>'
+                f'<span style="color:{self.col_tags};">{tags_html}</span><br>'
+                # f'<span style="color:{self.col_folders};">{folders_html}</span>'
+            )
+
+            label = QLabel()
+            label.setText(display_text)
+            label.setTextFormat(Qt.RichText)   # wichtig für HTML
+            label.setWordWrap(True)
+
+            # HTML in Spalte 0 anzeigen
+            table.setCellWidget(row, 0, label)
+
+            # # falls du die rohen Tags zusätzlich in Spalte 1 willst:
+            # table.setItem(row, 1, QTableWidgetItem(value))
 
     def get_all_tags(self):
         # immer aktuelle verfügbare Tags zurückgeben
@@ -344,21 +384,6 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
 
-
-    # def return_input_list(self):
-    #     mylist= ["el_num1", "el_num2", "el_num3","el_albert","el_chrissy",
-    #             "el_number", "el_num2b", "el_numb2", "el_num4a", "el_num4b",
-    #             "el_nmb41", "el_num41"]
-    #
-    #     mytags =  ["num1", "num2", "num3,num41,num4","num1","num2",
-    #                "number", "num2b", "numb2", "anum2", "num4b",
-    #                "nmb41", "num41,num2"]
-    #
-    #     dict_list_tags = {}
-    #     for elem, tag in zip(mylist, mytags) :
-    #         dict_list_tags[elem] = tag
-    #
-    #     return dict_list_tags
 
 
 def main():
