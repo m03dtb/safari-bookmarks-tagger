@@ -1,4 +1,5 @@
 import sys
+import re
 from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel
@@ -110,57 +111,6 @@ class LineEdit(QLineEdit):
         super().focusOutEvent(event)
         self.dropdown.hide()
 
-    # def on_text_changed(self, text: str):
-    #     text = text or ""
-    #     # read all tags already chosen from QLineEdit SearchBar
-    #     parts = [part.strip() for part in text.split(",") if part.strip()]
-    #     used_tags = set(parts)
-    #
-    #     # still available tags = all_tags_full minus used_tags
-    #     # self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
-    #
-    #
-    #     # use only the part AFTER the last comma in SearchBar
-    #     _ , sep, after = text.rpartition(",")
-    #     if sep:
-    #         # Wenn schon Tags vor dem Komma stehen, nur den Stub danach suchen
-    #         user_input = after.strip()
-    #     else:
-    #         # Kein Komma -> kompletter Text ist der Stub
-    #         user_input = text.strip()
-    #
-    #     # Tabelle filtern:
-    #     # - wenn noch ein Stub eingegeben wird: nach dem Stub filtern
-    #     # - sonst (kein Stub, aber schon Tags gewählt): nach dem letzten Tag filtern
-    #     if user_input:
-    #         filter_text = user_input
-    #     elif parts:
-    #         filter_text = parts[-1]
-    #     else:
-    #         filter_text = ""
-    #
-    #     self.table_obj.filter_table(filter_text, used_tags)
-    #
-    #     all_tags = list(self.table_obj.get_all_tags())
-    #     self.dropdown.clear()
-    #
-    #     if len(user_input) < 1:
-    #         # Kein Stub -> alle Tags anzeigen
-    #         for tag in all_tags:
-    #             self.dropdown.addItem(tag)
-    #         return
-    #
-    #     scored = []
-    #     # aktuellen Score für jeden Tag berechnen
-    #     for tag in all_tags:
-    #         score = fuzz.ratio(str(tag), user_input)
-    #         scored.append((score, tag))
-    #     # beste Treffer zuerst anzeigen
-    #     scored.sort(reverse=True)
-    #
-    #     for score, tag in scored:
-    #         if score >= 50:
-    #             self.dropdown.addItem(tag)
 
     def on_text_changed(self, text: str):
         text = text or ""
@@ -247,7 +197,6 @@ class LineEdit(QLineEdit):
         self.setText(new_text)
         self.setCursorPosition(len(self.text()))
 
-
     def keyPressEvent(self, event):
         # if user presses downkey 
         if event.key() == Qt.Key_Down:
@@ -272,6 +221,14 @@ class LineEdit(QLineEdit):
                 row = 0 # if focus on last row: go to first row (wrap-around)    
             # focus on first element in dropdown menu 
             self.dropdown.setCurrentRow(row)
+
+        # elif event.key() == Qt.Key_Backspace:
+        elif event.key() == Qt.Key_Backspace and event.modifiers() & Qt.MetaModifier:
+
+            old_text = self.text()
+            new_text = re.sub(r'[^,]+,?$', '', old_text)
+
+            self.setText(new_text)
 
             return 
 
