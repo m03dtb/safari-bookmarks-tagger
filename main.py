@@ -74,9 +74,16 @@ class LineEdit(QLineEdit):
         self.dropdown.hide()
 
     def on_text_changed(self, text: str):
-        user_input = text.strip()
-        all_tags = list(self.table_obj.get_all_tags())
+
+        _, sep, after = text.rpartition(",")
+        if sep: 
+            # if elements before comma 
+            user_input = after.strip()
+        else:
+            # if no separator (comma) > take whole text of dropdown to LineEdit
+            user_input = text.strip()
         
+        all_tags = list(self.table_obj.get_all_tags())
         self.dropdown.clear()
 
         if len(user_input) < 1:
@@ -97,46 +104,80 @@ class LineEdit(QLineEdit):
                 self.dropdown.addItem(tag)
 
     def on_return_pressed(self):
+        # item = self.dropdown.currentItem()
+        # if item is None and self.dropdown.count() > 0:
+        #     item = self.dropdown.item(0)
+        #
+        # if item is None:
+        #     return 
+        #
+        # tag = item.text().strip()
+        # text = self.text()
+        # before, sep, _ = text.rpartition(",")
+        #
+        # if sep: 
+        #     current = before.strip()
+        # else:
+        #     current = text.strip()
+        # if len(current) == 0:
+        #     new_text = tag+","
+        # else:
+        #     new_text = current+","+tag+","
+        #
+        # self.setText(new_text)
+        # self.setCursorPosition(len(self.text()))
+        # # TODO: hier weitermachen (17.11.2025)
         item = self.dropdown.currentItem()
         if item is None and self.dropdown.count() > 0:
             item = self.dropdown.item(0)
 
         if item is None:
-            return 
+            return
 
         tag = item.text().strip()
-
         text = self.text()
 
+        # Text in "Teil vor letztem Komma" und "Stub danach" aufteilen
+        before, sep, _ = text.rpartition(",")
 
-        before, sep, after = text.rpartition(",")
-        if sep: 
-            current = before.strip()
+        if sep:
+            # Es gibt schon frühere Tags: "tag1,myt"
+            # -> Prefix ist alles vor dem Stub + Komma
+            prefix = before.strip()
+            if prefix:
+                prefix = prefix + ","
         else:
-            current = text.strip()
-        if len(current) == 0:
-            new_text = tag+","
-        else:
-            new_text = current+","+tag+","
+            # Kein Komma: nur ein Stub wie "myt"
+            # -> kein Prefix, nur den ausgewählten Tag setzen
+            prefix = ""
+
+        # Stub ("myt") wird NICHT übernommen, sondern durch 'tag' ersetzt
+        new_text = prefix + tag + ","
 
         self.setText(new_text)
         self.setCursorPosition(len(self.text()))
-        # TODO: hier weitermachen (17.11.2025)
 
     def keyPressEvent(self, event):
         # if user presses downkey 
         if event.key() == Qt.Key_Down:
+            # count lines in dropdown
             count = self.dropdown.count()
+            # if no entries in dropdown > do not open dropdown
             if count == 0:
                 return 
 
+            # row = currently selected row
             row = self.dropdown.currentRow()
+            # if no row selected 
             if row  < 0:
+                # start at first row 
                 row = 0
-            elif row < count -1:
+            # if focus not yet on last element 
+            elif row < count -1: 
+                # on keypress down: go to next row 
                 row +=1 
             else: 
-                row = 0
+                row = 0 # if focus on last row: go to first row (wrap-around)    
             # focus on first element in dropdown menu 
             self.dropdown.setCurrentRow(row)
             return 
