@@ -37,7 +37,8 @@ class Table():
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
-        self.set_of_tags = set(self.mydict.values())
+        self.all_tags_full = set(self.mydict.values())
+        self.set_of_tags = set(self.all_tags_full)
 
         # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
@@ -103,6 +104,13 @@ class LineEdit(QLineEdit):
         self.dropdown.hide()
 
     def on_text_changed(self, text: str):
+        # read all tags already chosen from QLineEdit SearchBar
+        parts = [part.strip() for part in text.split(",") if part.strip()]
+        used_tags = set(parts)
+
+        # still available tags = all_tags_full minus used_tags
+        self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
+
         # Nur den Teil nach dem letzten Komma für die Suche verwenden
         _, sep, after = text.rpartition(",")
         if sep:
