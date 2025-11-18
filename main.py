@@ -110,56 +110,108 @@ class LineEdit(QLineEdit):
         super().focusOutEvent(event)
         self.dropdown.hide()
 
+    # def on_text_changed(self, text: str):
+    #     text = text or ""
+    #     # read all tags already chosen from QLineEdit SearchBar
+    #     parts = [part.strip() for part in text.split(",") if part.strip()]
+    #     used_tags = set(parts)
+    #
+    #     # still available tags = all_tags_full minus used_tags
+    #     # self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
+    #
+    #
+    #     # use only the part AFTER the last comma in SearchBar
+    #     _ , sep, after = text.rpartition(",")
+    #     if sep:
+    #         # Wenn schon Tags vor dem Komma stehen, nur den Stub danach suchen
+    #         user_input = after.strip()
+    #     else:
+    #         # Kein Komma -> kompletter Text ist der Stub
+    #         user_input = text.strip()
+    #
+    #     # Tabelle filtern:
+    #     # - wenn noch ein Stub eingegeben wird: nach dem Stub filtern
+    #     # - sonst (kein Stub, aber schon Tags gewählt): nach dem letzten Tag filtern
+    #     if user_input:
+    #         filter_text = user_input
+    #     elif parts:
+    #         filter_text = parts[-1]
+    #     else:
+    #         filter_text = ""
+    #
+    #     self.table_obj.filter_table(filter_text, used_tags)
+    #
+    #     all_tags = list(self.table_obj.get_all_tags())
+    #     self.dropdown.clear()
+    #
+    #     if len(user_input) < 1:
+    #         # Kein Stub -> alle Tags anzeigen
+    #         for tag in all_tags:
+    #             self.dropdown.addItem(tag)
+    #         return
+    #
+    #     scored = []
+    #     # aktuellen Score für jeden Tag berechnen
+    #     for tag in all_tags:
+    #         score = fuzz.ratio(str(tag), user_input)
+    #         scored.append((score, tag))
+    #     # beste Treffer zuerst anzeigen
+    #     scored.sort(reverse=True)
+    #
+    #     for score, tag in scored:
+    #         if score >= 50:
+    #             self.dropdown.addItem(tag)
+
     def on_text_changed(self, text: str):
-        # read all tags already chosen from QLineEdit SearchBar
-        parts = [part.strip() for part in text.split(",") if part.strip()]
-        used_tags = set(parts)
+        text = text or ""
+        # Alle Teile (inkl. Stub)
+        parts = [p.strip() for p in text.split(",") if p.strip()]
 
-        # still available tags = all_tags_full minus used_tags
-        # self.table_obj.set_of_tags = self.table_obj.all_tags_full - used_tags
-
-
-        # use only the part AFTER the last comma in SearchBar
-        _ , sep, after = text.rpartition(",")
-        if sep:
-            # Wenn schon Tags vor dem Komma stehen, nur den Stub danach suchen
-            user_input = after.strip()
+        # fertige Tags und Stub bestimmen
+        if text.endswith(","):
+            # letzter Tag abgeschlossen, kein Stub
+            selected_tags = set(parts)
+            user_input = ""
         else:
-            # Kein Komma -> kompletter Text ist der Stub
-            user_input = text.strip()
+            if parts:
+                selected_tags = set(parts[:-1])   # fertige Tags
+                user_input = parts[-1]           # Stub
+            else:
+                selected_tags = set()
+                user_input = ""
 
-        # Tabelle filtern:
-        # - wenn noch ein Stub eingegeben wird: nach dem Stub filtern
-        # - sonst (kein Stub, aber schon Tags gewählt): nach dem letzten Tag filtern
+        used_tags = selected_tags
+
+        # Tabellenfilter: alle fertigen Tags + ggf. Stub -> UND
+        filter_tags = list(selected_tags)
         if user_input:
-            filter_text = user_input
-        elif parts:
-            filter_text = parts[-1]
-        else:
-            filter_text = ""
+            filter_tags.append(user_input)
+        filter_text = ",".join(filter_tags)
 
         self.table_obj.filter_table(filter_text, used_tags)
 
+        # Dropdown aus verfügbaren Tags
         all_tags = list(self.table_obj.get_all_tags())
         self.dropdown.clear()
 
-        if len(user_input) < 1:
-            # Kein Stub -> alle Tags anzeigen
+        if not user_input:
+            # kein Stub -> alle verfügbaren Tags zeigen
             for tag in all_tags:
                 self.dropdown.addItem(tag)
             return
 
+        # mit Stub fuzzy filtern
         scored = []
-        # aktuellen Score für jeden Tag berechnen
         for tag in all_tags:
             score = fuzz.ratio(str(tag), user_input)
             scored.append((score, tag))
-        # beste Treffer zuerst anzeigen
         scored.sort(reverse=True)
 
         for score, tag in scored:
             if score >= 50:
                 self.dropdown.addItem(tag)
+
+
 
     def on_return_pressed(self):
         """Tag aus der aktuellen Dropdown-Auswahl in die Zeile übernehmen."""
