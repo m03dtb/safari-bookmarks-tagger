@@ -12,7 +12,8 @@ from PySide6.QtCore import QSize, Qt, QAbstractTableModel
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
-    QTableView, QTableWidget, QListWidget, QTableWidgetItem
+    QTableView, QTableWidget, QListWidget, QTableWidgetItem,
+    QHeaderView,
 )
 
 # CONSTANT VARIABLES 
@@ -66,15 +67,18 @@ def save_tags(tag_map: dict[str, list[str]]) -> None:
     with TAGS_JSON.open("w", encoding="utf-8") as f:
         json.dump(tag_map, f, ensure_ascii=False, indent=2)
 
-def build_table_dict() -> dict[str, str]:
+def build_table_dict() -> dict[str, dict[str, str]]:
     bookmarks = load_safari_bookmarks(BOOKMARKS_PLIST)
     tag_map = load_tags()
 
-    table_dict: dict[str, str] = {}
+    table_dict: dict[str, dict[str, str]] = {}
     for bm in bookmarks:
         tags = tag_map.get(bm.url, [])
         tags_str = ",".join(tags)
-        table_dict[bm.name] = tags_str 
+        table_dict[bm.name] = {
+            "url": bm.url,
+            "tags": tags_str,
+        }
     
     return table_dict
 
@@ -85,16 +89,16 @@ class Table():
         self.mydict = mydict
 
         # define colors 
-        self.col_name = "#000000"
+        self.col_name = "#cfffed"
         self.col_url = "#0000ff"
         self.col_tags = "#008000"
-        self.col_folders = "#888888"
+        # self.col_folders = "#888888"
     
 
         # Grundmenge aller EINZELNEN Tags aus dem Dict aufbauen
         all_tags = set()
         for value in self.mydict.values():
-            for tag in value.split(","):
+            for tag in value["tags"].split(","):
                 tag = tag.strip()
                 if tag:
                     all_tags.add(tag)
@@ -105,36 +109,34 @@ class Table():
         # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
-        header_labels = ["Name" ]
+        header_labels = ["Name", "URL", "Tags"]
         table.setColumnCount(len(header_labels))
         table.setHorizontalHeaderLabels(header_labels)
 
-        # for row, (key, value) in enumerate(mydict.items()):
-        #     # Name in Column 0
-        #     table.setItem(row, 0, QTableWidgetItem(key))
-        #     # Tags in Column 1
-        #     table.setItem(row, 1, QTableWidgetItem(value))
-        #
-        #     display_text = (
-        #         f'<div style="font-weight:bold; color:{self.col_name}; display:block; padding:2px 0px;">{title_html}</div><br>'
-        #         f'<span style="color:{self.col_url};">{url_html}</span><br>'
-        #         f'<span style="color:{self.col_tags};">{tags_html}</span><br>'
-        #         f'<span style="color:{self.col_folders};">{folders_html}</span>'
-        #         f'<div style="margin:0; padding:0px;">'
-        #         f'    <hr style="border:0; border-top:0px solid {self.col_name}; margin:0; padding:0;">'
-        #         f'</div>'
-        #     )
+        table.setColumnHidden(1, True)
+        table.setColumnHidden(2, True)
 
-        for row, (key, value) in enumerate(mydict.items()):
-            title_html = key
-            url_html = value    # hier deine echte URL einsetzen
-            # tags_html = "TEST"
+        table.verticalHeader().hide() # hide row numbers
+
+        all_tags = set()
+        for value in self.mydict.values():
+            for tag in value["tags"].split(","):
+                tag = tag.strip()
+                if tag:
+                    all_tags.add(tag)
+
+
+        for row, (name, data) in enumerate(mydict.items()):
+            url = data["url"]
+            # TODO: wieder auf data["tags"] zurücksetzen 
+            tags_str = "TAG"# data["tags"]
 
             display_text = (
-                f'<div style="font-weight:bold; color:{self.col_name};">{title_html}</div>'
-                f'<span style="color:{self.col_name};">{url_html}</span><br>'
-                # f'<span style="color:{self.col_tags};">{tags_html}</span><br>'
-                # f'<span style="color:{self.col_folders};">{folders_html}</span>'
+                "<html><body>"
+                f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
+                f'<span style="color:{self.col_url};">{url}</span><br>'
+                f'<span style="color:{self.col_tags};">{tags_str}</span>'
+                "</body></html>"
             )
 
             label = QLabel()
@@ -145,8 +147,15 @@ class Table():
             # HTML in Spalte 0 anzeigen
             table.setCellWidget(row, 0, label)
 
-            # # falls du die rohen Tags zusätzlich in Spalte 1 willst:
-            # table.setItem(row, 1, QTableWidgetItem(value))
+            table.setItem(row, 1, QTableWidgetItem(url))
+            table.setItem(row, 2, QTableWidgetItem(tags_str))
+
+            # table.resizeRowToContents()
+
+        table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        table.verticalHeader().setDefaultSectionSize(60)
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        # table.resizeRowToContents()
 
     def get_all_tags(self):
         # immer aktuelle verfügbare Tags zurückgeben
@@ -157,6 +166,7 @@ class Table():
             filter_text: str -> comma separated tags
         """
         table = self.table
+        table.setUpdatesEnabled(False)
         filter_text = (filter_text or "").strip().lower()
         used_tags = used_tags or set()
         
@@ -169,20 +179,23 @@ class Table():
 
         visible_tags = set()
 
-        for row in range(table.rowCount()):
-            item = table.item(row, 1)  # Spalte 1 = Tags-Spalte
-            tags = item.text().lower() if item else ""
-            row_tags = [
-                tag.strip()
-                for tag in tags.split(",")
-                if tag.strip()
-            ]
-            match = all(ftag in row_tags for ftag in filter_tags)
-            table.setRowHidden(row, not match)
+        try: 
+            for row in range(table.rowCount()):
+                item = table.item(row, 2)  # Spalte 1 = Tags-Spalte
+                tags = item.text().lower() if item else ""
+                row_tags = [
+                    tag.strip()
+                    for tag in tags.split(",")
+                    if tag.strip()
+                ]
+                match = all(ftag in row_tags for ftag in filter_tags)
+                table.setRowHidden(row, not match)
 
-            if match:
-                visible_tags.update(row_tags)
+                if match:
+                    visible_tags.update(row_tags)
 
+        finally:
+            table.setUpdatesEnabled(True)
         # available tags, i.e. tags of visible table rows minus those selected via dropdown
         self.set_of_tags = visible_tags - used_tags
                 
