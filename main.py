@@ -127,13 +127,13 @@ class Table():
 
         for row, (key, value) in enumerate(mydict.items()):
             title_html = key
-            url_html = "https://example.com"   # hier deine echte URL einsetzen
-            tags_html = value
+            url_html = value    # hier deine echte URL einsetzen
+            # tags_html = "TEST"
 
             display_text = (
                 f'<div style="font-weight:bold; color:{self.col_name};">{title_html}</div>'
-                f'<span style="color:{self.col_url};">{url_html}</span><br>'
-                f'<span style="color:{self.col_tags};">{tags_html}</span><br>'
+                f'<span style="color:{self.col_name};">{url_html}</span><br>'
+                # f'<span style="color:{self.col_tags};">{tags_html}</span><br>'
                 # f'<span style="color:{self.col_folders};">{folders_html}</span>'
             )
 
