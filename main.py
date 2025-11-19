@@ -110,16 +110,80 @@ class TagsWindow(QWidget):
 
 
     def add_tags(self):
+        # 1) Tags aus dem Eingabefeld holen (kommagetrennt)
+        raw_text = self.tags_input_field.text().strip()
+        if not raw_text:
+            return
+
+        new_tags = [t.strip() for t in raw_text.split(",") if t.strip()]
+        if not new_tags:
+            return
+
+        # 2) bestehende Tags aus JSON laden
+        tag_map = load_tags()  # dict[url] -> list[st
+        # 3) alle selektierten Zeilen durchgehen
         indexes = self.table.selectionModel().selectedRows()
         urls = []
 
+        # 3) iterate over all selected rows  
         for idx in indexes:
             row = idx.row()
+            # get url from hidden column 1 
             url_item = self.table.item(row,1) # column 1 == urls 
-            if url_item is not None:
-                urls.append(url_item.text())
+            if url_item is None:
+                continue
+            
+            url = url_item.text()
+            urls.append(url)
 
+            # tags existing before for URL 
+            existing = tag_map.get(url, [])
+            # convert tags to lowercase 
+            existing_lower = [tag.lower() for tag in existing]
+
+            for t in new_tags:
+                if t.lower() not in existing_lower:
+                    existing.append(t)
+                    existing_lower.append(t.lower())
+
+            # update map 
+            tag_map[url] = existing
+
+            # update table (col 2 = tags)
+            tags_str = ",".join(existing)
+            tags_item = self.table.item(row, 2)
+            if tags_item is not None:
+                tags_item.setText(tags_str)
+            else:
+                self.table.setItem(row, 2, QTableWidgetItem(tags_str))
+
+
+            # replace label in row 0 with new tags 
+            label = self.table.cellWidget(row, 0)
+            if label is not None:
+                old_html = label.text()
+                name_part = old_html.split("<br>", 1)[0]
+
+
+                # "<html><body>"
+                # f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
+                # f'<span style="color:{self.col_url};">{url}</span><br>'
+                # f'<span style="color:{self.col_tags};">{tags_str}</span>'
+                # "</body></html>"
+
+                new_html = (
+                    "<html><body>"
+                    f"{name_part}<br>"
+                    f'<span style="color:#0000ff;">{url}</span><br>'
+                    f'<span style="color:#008000;">{tags_str}</span>'
+                    "</body></html>"
+
+                )
+                label.setText(new_html)
+
+        save_tags(tag_map)
         print("SEL_URL:", urls)
+    
 
 
 class Table():
@@ -169,8 +233,7 @@ class Table():
 
         for row, (name, data) in enumerate(mydict.items()):
             url = data["url"]
-            # TODO: wieder auf data["tags"] zurücksetzen 
-            tags_str = "TAG"# data["tags"]
+            tags_str = data["tags"]
 
             display_text = (
                 "<html><body>"
@@ -192,10 +255,11 @@ class Table():
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
 
-        table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
-        table.verticalHeader().setDefaultSectionSize(60)
+        # table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        # table.verticalHeader().setDefaultSectionSize(60)
+        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        # table.resizeRowToContents()
+        table.resizeRowsToContents()
 
     def get_all_tags(self):
         # immer aktuelle verfügbare Tags zurückgeben
