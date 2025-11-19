@@ -644,7 +644,7 @@ class MainWindow(QMainWindow):
        
         self.open_selected_boomarks_urls = None 
 
-        self.setWindowTitle("BookmarksTagger")
+        self.setWindowTitle("BookmarksTagger_RELEASE")
 
 
         self.button_update_safari_bookmarks = QPushButton("🔄[r]eload bookmarks")

@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # executable erstellen
 pyinstaller --onefile --windowed --name BookmarksTagger main.py
