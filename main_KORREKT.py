@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 # CONSTANT VARIABLES 
-TAGS_JSON = Path("~/tags.json").expanduser()
+TAGS_JSON = Path("tags.json")
 BOOKMARKS_PLIST = Path("~/Library/Safari/Bookmarks.plist").expanduser()
 
 @dataclass
@@ -110,7 +110,6 @@ class TagsWindow(QWidget):
 
 
         # indexes = table.selectionModel().selectedRows()
-        # print("Anzahl selektierter Zeilen:", len(indexes))
         # for idx in sorted(indexes):
         #     print(f"ROW: {idx}")
 
@@ -271,7 +270,7 @@ class TagsWindow(QWidget):
                 new_html = (
                     "<html><body>"
                     f"{name_part}<br>"
-                    f'<span style="color:#00ccff;">{url}</span><br>'
+                    f'<span style="color:#0000ff;">{url}</span><br>'
                     f'<span style="color:#008000;">{tags_str}</span>'
                     "</body></html>"
                 )
@@ -294,7 +293,7 @@ class Table():
 
         # define colors 
         self.col_name = "#cfffed"
-        self.col_url = "#00ccff"
+        self.col_url = "#0000ff"
         self.col_tags = "#008000"
         # self.col_folders = "#888888"
     
