@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QApplication, QMessageBox, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem,
-    QHeaderView, QAbstractItemView
+    QHeaderView, QAbstractItemView, QCheckBox
 )
 
 # CONSTANT VARIABLES 
@@ -104,6 +104,11 @@ class TagsWindow(QWidget):
         self.delete_button = QPushButton("Delete Tag(s)")
         self.delete_button.clicked.connect(self.delete_tags)
 
+        self.tag_checkboxes: list[QCheckBox] = []
+        self.checkboxes_layout = QVBoxLayout()
+        self.checkboxes_layout.setContentsMargins(0, 0, 0, 0)
+        self.checkboxes_layout.setSpacing(0)
+
         indexes = table.selectionModel().selectedRows()
         print("Anzahl selektierter Zeilen:", len(indexes))
         for idx in sorted(indexes):
@@ -112,12 +117,42 @@ class TagsWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.tags_input_field)
         layout.addWidget(self.add_button)
+        layout.addWidget(QLabel("Select tags to delete:"))
+        layout.addLayout(self.checkboxes_layout)
         layout.addWidget(self.delete_button)
         layout.addStretch()
         layout.addWidget(self.status_label_1)
         layout.addWidget(self.status_label_2)
         layout.addWidget(self.status_label)
         self.setLayout(layout)
+
+        self.populate_tag_checkboxes()
+
+
+    def populate_tag_checkboxes(self):
+        for cb in self.tag_checkboxes:
+            cb.setParent(None)
+        self.tag_checkboxes.clear()
+
+        tag_map = load_tags()
+        indexes = self.table.selectionModel().selectedRows()
+        tags_set: set[str] = set()
+        for idx in indexes:
+            row = idx.row()
+            url_item = self.table.item(row, 1)
+            if url_item is None:
+                continue
+            url = url_item.text()
+            existing = tag_map.get(url, [])
+            for t in existing:
+                t = t.strip()
+                if t:
+                    tags_set.add(t)
+
+        for tag in sorted(tags_set, key=str.lower):
+            cb = QCheckBox(tag)
+            self.checkboxes_layout.addWidget(cb)
+            self.tag_checkboxes.append(cb)
 
 
     def add_tags(self):
@@ -204,23 +239,19 @@ class TagsWindow(QWidget):
 
             save_tags(tag_map)
             self.tags_input_field.clear()
+            self.populate_tag_checkboxes()
             self.status_label.setText("Tag(s) saved")
             QTimer.singleShot(1000, self.status_label.clear)
     
     def delete_tags(self):
-        # Tags aus dem Eingabefeld holen (kommagetrennt)
-        raw_text = self.tags_input_field.text().strip()
-        if not raw_text:
-            return
-
-        tags_to_delete = [t.strip().lower() for t in raw_text.split(",") if t.strip()]
-        if not tags_to_delete:
-            return
-
         tag_map = load_tags()
         indexes = self.table.selectionModel().selectedRows()
         if len(indexes) == 0:
             QMessageBox.information(self, "Info", "Select one or more entries you want to delete tags from")
+            return
+
+        tags_to_delete = [cb.text().strip().lower() for cb in self.tag_checkboxes if cb.isChecked()]
+        if not tags_to_delete:
             return
 
         for idx in indexes:
@@ -266,6 +297,7 @@ class TagsWindow(QWidget):
 
         save_tags(tag_map)
         self.tags_input_field.clear()
+        self.populate_tag_checkboxes()
         self.status_label.setText("Tag(s) deleted")
         QTimer.singleShot(1000, self.status_label.clear)
     
@@ -612,6 +644,7 @@ class MainWindow(QMainWindow):
         if self.tags_window.isVisible():
             self.tags_window.close()
         else:
+            self.tags_window.populate_tag_checkboxes()
             self.tags_window.show()
             self.tags_window.raise_()
             self.tags_window.activateWindow()
