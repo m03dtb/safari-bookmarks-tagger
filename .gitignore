@@ -1,2 +1,6 @@
 main_chatgpt.py
 tags.json
+.DS_Store
+build_exe.sh
+notes.md
+uninstall_exe.sh

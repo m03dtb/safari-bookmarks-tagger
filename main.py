@@ -96,6 +96,8 @@ class TagsWindow(QWidget):
         self.tags_input_field = QLineEdit()
         self.add_button = QPushButton("Add Tag [Enter]")
         self.add_button.clicked.connect(self.add_tags)
+        
+
         self.tags_input_field.returnPressed.connect(self.add_tags)
         self.delete_button = QPushButton("Delete Tag(s)")
         self.delete_button.clicked.connect(self.delete_tags)
@@ -104,6 +106,8 @@ class TagsWindow(QWidget):
         self.checkboxes_layout = QVBoxLayout()
         self.checkboxes_layout.setContentsMargins(0, 0, 0, 0)
         self.checkboxes_layout.setSpacing(0)
+    
+
 
         indexes = table.selectionModel().selectedRows()
         print("Anzahl selektierter Zeilen:", len(indexes))
@@ -155,32 +159,26 @@ class TagsWindow(QWidget):
         raw_text = self.tags_input_field.text().strip()
         if not raw_text:
             return
-
         new_tags = [t.strip() for t in raw_text.split(",") if t.strip()]
         if not new_tags:
             return
 
         # 2) bestehende Tags aus JSON laden
-        tag_map = load_tags()  # dict[url] -> list[st
+        tag_map = load_tags()  # dict[url] -> list[str]
+
         # 3) alle selektierten Zeilen durchgehen
         indexes = self.table.selectionModel().selectedRows()
         if len(indexes) == 0:
             QMessageBox.information(self,"Info", "Select one or more entries you want to add tags to")
-             
         else:
 
-            urls = []
-
-            # 3) iterate over all selected rows  
             for idx in indexes:
                 row = idx.row()
                 # get url from hidden column 1 
                 url_item = self.table.item(row,1) # column 1 == urls 
                 if url_item is None:
                     continue
-                
                 url = url_item.text()
-                urls.append(url)
 
                 # tags existing before for URL 
                 existing = tag_map.get(url, [])
@@ -192,52 +190,20 @@ class TagsWindow(QWidget):
                         existing.append(t)
                         existing_lower.append(t.lower())
 
-                # update map 
+                # update map
                 tag_map[url] = existing
 
-                # update table (col 2 = tags)
-                tags_str = ",".join(existing)
-                tags_item = self.table.item(row, 2)
-                if tags_item is not None:
-                    tags_item.setText(tags_str)
-                else:
-                    self.table.setItem(row, 2, QTableWidgetItem(tags_str))
-
-
-                # replace label in row 0 with new tags 
-                label = self.table.cellWidget(row, 0)
-                if label is not None:
-                    old_html = label.text()
-                    name_part = old_html.split("<br>", 1)[0]
-
-
-                    # "<html><body>"
-                    # f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
-                    # f'<span style="color:{self.col_url};">{url}</span><br>'
-                    # f'<span style="color:{self.col_tags};">{tags_str}</span>'
-                    # "</body></html>"
-
-                    new_html = (
-                        "<html><body>"
-                        f"{name_part}<br>"
-                        f'<span style="color:#0000ff;">{url}</span><br>'
-                        f'<span style="color:#008000;">{tags_str}</span>'
-                        "</body></html>"
-
-                    )
-                    label.setText(new_html)
-
-
-                self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-                self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-                self.table.resizeRowsToContents()
+            # Tabelle und Labels mit den aktualisierten Tags synchronisieren
+            self._apply_tag_map_to_selection(tag_map, indexes)
 
             save_tags(tag_map)
             self.tags_input_field.clear()
             self.populate_tag_checkboxes()
             self.status_label_1.setText("Tag(s) saved")
             QTimer.singleShot(1000, self.status_label_1.clear)
+
     
+
     def delete_tags(self):
         tag_map = load_tags()
         indexes = self.table.selectionModel().selectedRows()
@@ -265,13 +231,38 @@ class TagsWindow(QWidget):
             else:
                 tag_map.pop(url, None)
 
-            tags_str = ",".join(remaining)
+        # Tabelle und Labels mit den aktualisierten Tags synchronisieren
+        self._apply_tag_map_to_selection(tag_map, indexes)
+
+        save_tags(tag_map)
+        self.tags_input_field.clear()
+        self.populate_tag_checkboxes()
+        self.status_label_1.setText("Tag(s) deleted")
+        QTimer.singleShot(1000, self.status_label_1.clear)
+   
+
+    def _apply_tag_map_to_selection(self, tag_map, indexes):
+        """Gemeinsamer Code zum Aktualisieren der Tabelle und Labels
+        für alle selektierten Zeilen basierend auf dem übergebenen tag_map.
+        """
+        for idx in indexes:
+            row = idx.row()
+            url_item = self.table.item(row, 1)
+            if url_item is None:
+                continue
+
+            url = url_item.text()
+            existing = tag_map.get(url, [])
+            tags_str = ",".join(existing)
+
+            # update table (col 2 = tags)
             tags_item = self.table.item(row, 2)
             if tags_item is not None:
                 tags_item.setText(tags_str)
             else:
                 self.table.setItem(row, 2, QTableWidgetItem(tags_str))
 
+            # replace label in row 0 with new tags 
             label = self.table.cellWidget(row, 0)
             if label is not None:
                 old_html = label.text()
@@ -286,16 +277,10 @@ class TagsWindow(QWidget):
                 )
                 label.setText(new_html)
 
-            self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-            self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-            self.table.resizeRowsToContents()
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.table.resizeRowsToContents()
 
-        save_tags(tag_map)
-        self.tags_input_field.clear()
-        self.populate_tag_checkboxes()
-        self.status_label_1.setText("Tag(s) deleted")
-        QTimer.singleShot(1000, self.status_label_1.clear)
-    
 
 
 class Table():
@@ -455,6 +440,42 @@ class Table():
         '''
 
         subprocess.run(["osascript", "-e", script])
+
+    def reload(self, mydict):
+        self.mydict = mydict
+        table = self.table
+        table.clearContents()
+        table.setRowCount(len(mydict.keys()))
+
+        for row, (name, data) in enumerate(mydict.items()):
+            url = data["url"]
+            tags_str = data["tags"]
+
+            display_text = (
+                "<html><body>"
+                f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
+                f'<span style="color:{self.col_url};">{url}</span><br>'
+                f'<span style="color:{self.col_tags};">{tags_str}</span>'
+                "</body></html>"
+            )
+
+            label = QLabel()
+            label.setText(display_text)
+            label.setTextFormat(Qt.RichText)   # wichtig für HTML
+            label.setWordWrap(True)
+            label.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+            # HTML in Spalte 0 anzeigen
+            table.setCellWidget(row, 0, label)
+
+            table.setItem(row, 1, QTableWidgetItem(url))
+            table.setItem(row, 2, QTableWidgetItem(tags_str))
+
+        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        table.resizeRowsToContents()
+
+
 
 class LineEdit(QLineEdit):
     def __init__(self, table_obj, dropdown, *args, **kwargs):
@@ -625,6 +646,14 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("BookmarksTagger")
 
+
+        self.button_update_safari_bookmarks = QPushButton("🔄[r]eload bookmarks")
+        self.update_safari_bookmarks = load_safari_bookmarks
+        self.button_update_safari_bookmarks.clicked.connect(self.on_button_load_safari_bookmarks_updated)
+        self.shortcut_button_update_safari_bookmarks = QShortcut(QKeySequence("Meta+R"), self)
+        self.shortcut_button_update_safari_bookmarks.setContext(Qt.ApplicationShortcut)
+        self.shortcut_button_update_safari_bookmarks.activated.connect(self.on_button_load_safari_bookmarks_updated)
+
         self.button = QPushButton("[t]ags: add/del")
         self.dropdown = QListWidget()
         self.dropdown.hide()
@@ -674,6 +703,8 @@ class MainWindow(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.button)
         button_layout.addWidget(self.info)
+        button_layout.addWidget(self.button_update_safari_bookmarks)
+
         # LAYOUT 
         upper_layout = QHBoxLayout()
         middle_layout = QHBoxLayout()
@@ -722,7 +753,15 @@ class MainWindow(QMainWindow):
 
     def open_selected_bookmarks(self):
         self.open_selected_boomarks_urls()
-    
+
+   
+    def on_button_load_safari_bookmarks_updated(self):
+        # neue Daten holen
+        self.mydict = build_table_dict()
+        # bestehende Table damit neu füllen
+        self.table.reload(self.mydict)
+
+
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
     # print(plist_path)
