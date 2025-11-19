@@ -8,7 +8,7 @@ from pathlib import Path
 from dataclasses import dataclass 
 from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
-from PySide6.QtCore import QSize, Qt, QAbstractTableModel
+from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QTimer
 from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
@@ -92,7 +92,8 @@ class TagsWindow(QWidget):
         self.setWindowTitle("Tags")
 
         self.setGeometry(0, 0, 300,(height/2))
-
+        
+        self.status_label = QLabel("")
         self.table = table
         self.tags_input_field = QLineEdit()
         self.add_button = QPushButton("Add Tag")
@@ -106,6 +107,7 @@ class TagsWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.tags_input_field)
         layout.addWidget(self.add_button)
+        layout.addWidget(self.status_label)
         self.setLayout(layout)
 
 
@@ -181,8 +183,15 @@ class TagsWindow(QWidget):
                 )
                 label.setText(new_html)
 
+
+            self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+            self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            self.table.resizeRowsToContents()
+
         save_tags(tag_map)
-        print("SEL_URL:", urls)
+        self.tags_input_field.clear()
+        self.status_label.setText("Tag(s) saved")
+        QTimer.singleShot(1000, self.status_label.clear)
     
 
 
@@ -469,14 +478,24 @@ class MainWindow(QMainWindow):
         self.mydict = build_table_dict()
         self.setWindowTitle("MyApp")
         self.table = Table(self.mydict, self.line)
-        self.button = QPushButton("+Tags")
+        self.button = QPushButton("+[t]ags")
         self.dropdown = QListWidget()
         self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
+        self.line_delete_button = QPushButton("[x]")
         # self.set_of_tags = None 
 
         self.button.clicked.connect(self.on_tags_button_clicked)
+        self.shortcut_button = QShortcut(QKeySequence("Ctrl+T"), self)
+        self.shortcut_button.activated.connect(self.on_tags_button_clicked)
 
+        self.line_delete_button.clicked.connect(self.on_line_delete_button_clicked)
+        self.shortcut_line_delete_button = QShortcut(QKeySequence("Ctrl+X"), self)
+        self.shortcut_line_delete_button.activated.connect(self.on_line_delete_button_clicked)
+
+        line_layout = QHBoxLayout()
+        line_layout.addWidget(self.line)
+        line_layout.addWidget(self.line_delete_button)
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
@@ -488,7 +507,7 @@ class MainWindow(QMainWindow):
 
         upper_layout.addWidget(self.button)
         middle_layout.addWidget(self.table.table)
-        bottom_layout.addWidget(self.line)
+        bottom_layout.addLayout(line_layout)
         bottom_layout.addWidget(self.dropdown)
 
         main_layout.addLayout(upper_layout)
@@ -507,6 +526,9 @@ class MainWindow(QMainWindow):
         self.tags_window.raise_()
         self.tags_window.activateWindow()
 
+    def on_line_delete_button_clicked(self):
+        if not self.line == None:
+            self.line.clear()
     
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
