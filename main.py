@@ -10,7 +10,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QTimer
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QMainWindow, QPushButton,
+    QApplication, QMessageBox, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView
@@ -125,73 +125,78 @@ class TagsWindow(QWidget):
         tag_map = load_tags()  # dict[url] -> list[st
         # 3) alle selektierten Zeilen durchgehen
         indexes = self.table.selectionModel().selectedRows()
-        urls = []
+        if len(indexes) == 0:
+            QMessageBox.information(self,"Info", "Select one or more entries you want to add tags to")
+             
+        else:
 
-        # 3) iterate over all selected rows  
-        for idx in indexes:
-            row = idx.row()
-            # get url from hidden column 1 
-            url_item = self.table.item(row,1) # column 1 == urls 
-            if url_item is None:
-                continue
-            
-            url = url_item.text()
-            urls.append(url)
+            urls = []
 
-            # tags existing before for URL 
-            existing = tag_map.get(url, [])
-            # convert tags to lowercase 
-            existing_lower = [tag.lower() for tag in existing]
+            # 3) iterate over all selected rows  
+            for idx in indexes:
+                row = idx.row()
+                # get url from hidden column 1 
+                url_item = self.table.item(row,1) # column 1 == urls 
+                if url_item is None:
+                    continue
+                
+                url = url_item.text()
+                urls.append(url)
 
-            for t in new_tags:
-                if t.lower() not in existing_lower:
-                    existing.append(t)
-                    existing_lower.append(t.lower())
+                # tags existing before for URL 
+                existing = tag_map.get(url, [])
+                # convert tags to lowercase 
+                existing_lower = [tag.lower() for tag in existing]
 
-            # update map 
-            tag_map[url] = existing
+                for t in new_tags:
+                    if t.lower() not in existing_lower:
+                        existing.append(t)
+                        existing_lower.append(t.lower())
 
-            # update table (col 2 = tags)
-            tags_str = ",".join(existing)
-            tags_item = self.table.item(row, 2)
-            if tags_item is not None:
-                tags_item.setText(tags_str)
-            else:
-                self.table.setItem(row, 2, QTableWidgetItem(tags_str))
+                # update map 
+                tag_map[url] = existing
 
-
-            # replace label in row 0 with new tags 
-            label = self.table.cellWidget(row, 0)
-            if label is not None:
-                old_html = label.text()
-                name_part = old_html.split("<br>", 1)[0]
+                # update table (col 2 = tags)
+                tags_str = ",".join(existing)
+                tags_item = self.table.item(row, 2)
+                if tags_item is not None:
+                    tags_item.setText(tags_str)
+                else:
+                    self.table.setItem(row, 2, QTableWidgetItem(tags_str))
 
 
-                # "<html><body>"
-                # f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
-                # f'<span style="color:{self.col_url};">{url}</span><br>'
-                # f'<span style="color:{self.col_tags};">{tags_str}</span>'
-                # "</body></html>"
-
-                new_html = (
-                    "<html><body>"
-                    f"{name_part}<br>"
-                    f'<span style="color:#0000ff;">{url}</span><br>'
-                    f'<span style="color:#008000;">{tags_str}</span>'
-                    "</body></html>"
-
-                )
-                label.setText(new_html)
+                # replace label in row 0 with new tags 
+                label = self.table.cellWidget(row, 0)
+                if label is not None:
+                    old_html = label.text()
+                    name_part = old_html.split("<br>", 1)[0]
 
 
-            self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-            self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-            self.table.resizeRowsToContents()
+                    # "<html><body>"
+                    # f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
+                    # f'<span style="color:{self.col_url};">{url}</span><br>'
+                    # f'<span style="color:{self.col_tags};">{tags_str}</span>'
+                    # "</body></html>"
 
-        save_tags(tag_map)
-        self.tags_input_field.clear()
-        self.status_label.setText("Tag(s) saved")
-        QTimer.singleShot(1000, self.status_label.clear)
+                    new_html = (
+                        "<html><body>"
+                        f"{name_part}<br>"
+                        f'<span style="color:#0000ff;">{url}</span><br>'
+                        f'<span style="color:#008000;">{tags_str}</span>'
+                        "</body></html>"
+
+                    )
+                    label.setText(new_html)
+
+
+                self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+                self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+                self.table.resizeRowsToContents()
+
+            save_tags(tag_map)
+            self.tags_input_field.clear()
+            self.status_label.setText("Tag(s) saved")
+            QTimer.singleShot(1000, self.status_label.clear)
     
 
 
@@ -224,7 +229,7 @@ class Table():
         # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
-        header_labels = ["Name", "URL", "Tags"]
+        header_labels = ["Bookmarks", "URL", "Tags"]
         table.setColumnCount(len(header_labels))
         table.setHorizontalHeaderLabels(header_labels)
 
@@ -366,10 +371,11 @@ class LineEdit(QLineEdit):
         used_tags = selected_tags
 
         # Tabellenfilter: alle fertigen Tags + ggf. Stub -> UND
-        filter_tags = list(selected_tags)
-        if user_input:
-            filter_tags.append(user_input)
-        filter_text = ",".join(filter_tags)
+        # filter_tags = list(selected_tags)
+        # if user_input:
+        #     filter_tags.append(user_input)
+        # filter_text = ",".join(filter_tags)
+        filter_text = ",".join(selected_tags)
 
         self.table_obj.filter_table(filter_text, used_tags)
 
@@ -391,7 +397,7 @@ class LineEdit(QLineEdit):
         scored.sort(reverse=True)
 
         for score, tag in scored:
-            if score >= 50:
+            if score >= 30:
                 self.dropdown.addItem(tag)
 
     def on_return_pressed(self):
@@ -478,34 +484,38 @@ class MainWindow(QMainWindow):
         self.mydict = build_table_dict()
         self.setWindowTitle("MyApp")
         self.table = Table(self.mydict, self.line)
-        self.button = QPushButton("+[t]ags")
+        self.button = QPushButton("[a]dd_tags")
         self.dropdown = QListWidget()
         self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
-        self.line_delete_button = QPushButton("[x]")
+        self.line_delete_button = QPushButton("[c]lear")
         # self.set_of_tags = None 
 
+        self.info = QLabel("Hotkeys: use ctrl+[key]")
         self.button.clicked.connect(self.on_tags_button_clicked)
-        self.shortcut_button = QShortcut(QKeySequence("Ctrl+T"), self)
+        self.shortcut_button = QShortcut(QKeySequence("Meta+A"), self)
+        # make shortcut globally accessible 
+        self.shortcut_button.setContext(Qt.ApplicationShortcut)  # <── das fehlt
         self.shortcut_button.activated.connect(self.on_tags_button_clicked)
 
         self.line_delete_button.clicked.connect(self.on_line_delete_button_clicked)
-        self.shortcut_line_delete_button = QShortcut(QKeySequence("Ctrl+X"), self)
+        self.shortcut_line_delete_button = QShortcut(QKeySequence("Meta+C"), self)
         self.shortcut_line_delete_button.activated.connect(self.on_line_delete_button_clicked)
 
         line_layout = QHBoxLayout()
         line_layout.addWidget(self.line)
         line_layout.addWidget(self.line_delete_button)
 
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.button)
+        button_layout.addWidget(self.info)
         # LAYOUT 
         upper_layout = QHBoxLayout()
         middle_layout = QHBoxLayout()
-
         bottom_layout = QVBoxLayout()
-
         main_layout = QVBoxLayout()
 
-        upper_layout.addWidget(self.button)
+        upper_layout.addLayout(button_layout)
         middle_layout.addWidget(self.table.table)
         bottom_layout.addLayout(line_layout)
         bottom_layout.addWidget(self.dropdown)
@@ -522,13 +532,15 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "tags_window"):
             self.tags_window = TagsWindow(self.table.table, self.height())
 
-        self.tags_window.show()
-        self.tags_window.raise_()
-        self.tags_window.activateWindow()
+        if self.tags_window.isVisible():
+            self.tags_window.close()
+        else:
+            self.tags_window.show()
+            self.tags_window.raise_()
+            self.tags_window.activateWindow()
 
     def on_line_delete_button_clicked(self):
-        if not self.line == None:
-            self.line.clear()
+        self.line.clear()
     
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
