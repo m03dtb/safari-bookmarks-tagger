@@ -89,15 +89,20 @@ def build_table_dict() -> dict[str, dict[str, str]]:
 class TagsWindow(QWidget):
     def __init__(self, table, height) -> None:
         super().__init__()
-        self.setWindowTitle("Tags")
+        self.setWindowTitle("Add / Delete Tags")
 
         self.setGeometry(0, 0, 300,(height/2))
-        
+       
+        self.status_label_1 = QLabel("INFO: Adds tags to your selected bookmarks")
+        self.status_label_2 = QLabel("Exit with <Ctrl> T")
         self.status_label = QLabel("")
         self.table = table
         self.tags_input_field = QLineEdit()
-        self.add_button = QPushButton("Add Tag")
+        self.add_button = QPushButton("Add Tag [Enter]")
         self.add_button.clicked.connect(self.add_tags)
+        self.tags_input_field.returnPressed.connect(self.add_tags)
+        self.delete_button = QPushButton("Delete Tag(s)")
+        self.delete_button.clicked.connect(self.delete_tags)
 
         indexes = table.selectionModel().selectedRows()
         print("Anzahl selektierter Zeilen:", len(indexes))
@@ -107,6 +112,10 @@ class TagsWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.tags_input_field)
         layout.addWidget(self.add_button)
+        layout.addWidget(self.delete_button)
+        layout.addStretch()
+        layout.addWidget(self.status_label_1)
+        layout.addWidget(self.status_label_2)
         layout.addWidget(self.status_label)
         self.setLayout(layout)
 
@@ -197,6 +206,68 @@ class TagsWindow(QWidget):
             self.tags_input_field.clear()
             self.status_label.setText("Tag(s) saved")
             QTimer.singleShot(1000, self.status_label.clear)
+    
+    def delete_tags(self):
+        # Tags aus dem Eingabefeld holen (kommagetrennt)
+        raw_text = self.tags_input_field.text().strip()
+        if not raw_text:
+            return
+
+        tags_to_delete = [t.strip().lower() for t in raw_text.split(",") if t.strip()]
+        if not tags_to_delete:
+            return
+
+        tag_map = load_tags()
+        indexes = self.table.selectionModel().selectedRows()
+        if len(indexes) == 0:
+            QMessageBox.information(self, "Info", "Select one or more entries you want to delete tags from")
+            return
+
+        for idx in indexes:
+            row = idx.row()
+            url_item = self.table.item(row, 1)
+            if url_item is None:
+                continue
+
+            url = url_item.text()
+            existing = tag_map.get(url, [])
+            # alle Tags entfernen, die im Delete-Input stehen (case-insensitive)
+            remaining = [t for t in existing if t.lower() not in tags_to_delete]
+
+            if remaining:
+                tag_map[url] = remaining
+            else:
+                tag_map.pop(url, None)
+
+            tags_str = ",".join(remaining)
+            tags_item = self.table.item(row, 2)
+            if tags_item is not None:
+                tags_item.setText(tags_str)
+            else:
+                self.table.setItem(row, 2, QTableWidgetItem(tags_str))
+
+            label = self.table.cellWidget(row, 0)
+            if label is not None:
+                old_html = label.text()
+                name_part = old_html.split("<br>", 1)[0]
+
+                new_html = (
+                    "<html><body>"
+                    f"{name_part}<br>"
+                    f'<span style="color:#0000ff;">{url}</span><br>'
+                    f'<span style="color:#008000;">{tags_str}</span>'
+                    "</body></html>"
+                )
+                label.setText(new_html)
+
+            self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+            self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            self.table.resizeRowsToContents()
+
+        save_tags(tag_map)
+        self.tags_input_field.clear()
+        self.status_label.setText("Tag(s) deleted")
+        QTimer.singleShot(1000, self.status_label.clear)
     
 
 
@@ -482,18 +553,21 @@ class MainWindow(QMainWindow):
         self.line = None 
         # self.mydict = self.return_input_list()
         self.mydict = build_table_dict()
-        self.setWindowTitle("MyApp")
+        self.setWindowTitle("BookmarksTagger")
         self.table = Table(self.mydict, self.line)
-        self.button = QPushButton("[a]dd_tags")
+        self.button = QPushButton("[t]ags: add/del")
         self.dropdown = QListWidget()
         self.dropdown.hide()
+        
         self.line = LineEdit(self.table, self.dropdown)
+        self.line.setPlaceholderText("[s]")
+
         self.line_delete_button = QPushButton("[c]lear")
         # self.set_of_tags = None 
 
         self.info = QLabel("Hotkeys: use ctrl+[key]")
         self.button.clicked.connect(self.on_tags_button_clicked)
-        self.shortcut_button = QShortcut(QKeySequence("Meta+A"), self)
+        self.shortcut_button = QShortcut(QKeySequence("Meta+T"), self)
         # make shortcut globally accessible 
         self.shortcut_button.setContext(Qt.ApplicationShortcut)  # <── das fehlt
         self.shortcut_button.activated.connect(self.on_tags_button_clicked)
@@ -501,6 +575,9 @@ class MainWindow(QMainWindow):
         self.line_delete_button.clicked.connect(self.on_line_delete_button_clicked)
         self.shortcut_line_delete_button = QShortcut(QKeySequence("Meta+C"), self)
         self.shortcut_line_delete_button.activated.connect(self.on_line_delete_button_clicked)
+
+        self.line_shortcut = QShortcut(QKeySequence("Meta+S"), self)
+        self.line_shortcut.activated.connect(self.go_to_search_bar)
 
         line_layout = QHBoxLayout()
         line_layout.addWidget(self.line)
@@ -541,6 +618,10 @@ class MainWindow(QMainWindow):
 
     def on_line_delete_button_clicked(self):
         self.line.clear()
+
+    def go_to_search_bar(self):
+        self.line.setFocus()
+
     
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
