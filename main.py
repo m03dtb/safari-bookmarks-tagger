@@ -21,27 +21,7 @@ TAGS_JSON = Path("tags.json")
 BOOKMARKS_PLIST = Path("~/Library/Safari/Bookmarks.plist").expanduser()
 
 
-class TagsWindow(QWidget):
-    def __init__(self, table, height) -> None:
-        super().__init__()
-        self.setWindowTitle("Tags")
 
-        self.setGeometry(0, 0, 300,(height/2))
-
-        self.tags_input_field = QLineEdit()
-
-        indexes = table.selectionModel().selectedRows()
-        print("Anzahl selektierter Zeilen:", len(indexes))
-        for idx in sorted(indexes):
-            print(f"ROW: {idx}")
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.tags_input_field)
-        self.setLayout(layout)
-
-
-    def add_tags(self):
-        pass
 
 
 @dataclass
@@ -104,6 +84,43 @@ def build_table_dict() -> dict[str, dict[str, str]]:
         }
     
     return table_dict
+
+
+class TagsWindow(QWidget):
+    def __init__(self, table, height) -> None:
+        super().__init__()
+        self.setWindowTitle("Tags")
+
+        self.setGeometry(0, 0, 300,(height/2))
+
+        self.table = table
+        self.tags_input_field = QLineEdit()
+        self.add_button = QPushButton("Add Tag")
+        self.add_button.clicked.connect(self.add_tags)
+
+        indexes = table.selectionModel().selectedRows()
+        print("Anzahl selektierter Zeilen:", len(indexes))
+        for idx in sorted(indexes):
+            print(f"ROW: {idx}")
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.tags_input_field)
+        layout.addWidget(self.add_button)
+        self.setLayout(layout)
+
+
+    def add_tags(self):
+        indexes = self.table.selectionModel().selectedRows()
+        urls = []
+
+        for idx in indexes:
+            row = idx.row()
+            url_item = self.table.item(row,1) # column 1 == urls 
+            if url_item is not None:
+                urls.append(url_item.text())
+
+        print("SEL_URL:", urls)
+
 
 class Table():
     def __init__(self, mydict, line) -> None:
