@@ -595,6 +595,11 @@ class MainWindow(QMainWindow):
         self.line.setPlaceholderText("[s]")
 
         self.line_delete_button = QPushButton("[c]lear")
+        self.extended_search_button = QPushButton("▾ Details")
+        self.extended_search_button.clicked.connect(self.on_button_details_clicked)
+        self.extended_search_line = QLineEdit()
+        self.extended_search_line.setPlaceholderText("substring of urls")
+        self.extended_search_line.hide()
         # self.set_of_tags = None 
 
         self.info = QLabel("Hotkeys: use ctrl+[key]")
@@ -614,6 +619,7 @@ class MainWindow(QMainWindow):
         line_layout = QHBoxLayout()
         line_layout.addWidget(self.line)
         line_layout.addWidget(self.line_delete_button)
+        line_layout.addWidget(self.extended_search_button)
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.button)
@@ -628,6 +634,7 @@ class MainWindow(QMainWindow):
         middle_layout.addWidget(self.table.table)
         bottom_layout.addLayout(line_layout)
         bottom_layout.addWidget(self.dropdown)
+        bottom_layout.addWidget(self.extended_search_line)
 
         main_layout.addLayout(upper_layout)
         main_layout.addLayout(middle_layout)
@@ -654,6 +661,15 @@ class MainWindow(QMainWindow):
 
     def go_to_search_bar(self):
         self.line.setFocus()
+
+    def on_button_details_clicked(self):
+        if self.extended_search_line.isVisible():
+            self.extended_search_line.hide()
+            self.extended_search_button.setText("▸ Details")
+        else:
+            self.extended_search_line.show()
+            self.extended_search_button.setText("▾ Details")
+
 
     
 def main():
