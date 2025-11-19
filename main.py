@@ -4,6 +4,7 @@ import json
 import re
 import plistlib
 from pathlib import Path
+import subprocess
 
 from dataclasses import dataclass 
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -19,10 +20,6 @@ from PySide6.QtWidgets import (
 # CONSTANT VARIABLES 
 TAGS_JSON = Path("tags.json")
 BOOKMARKS_PLIST = Path("~/Library/Safari/Bookmarks.plist").expanduser()
-
-
-
-
 
 @dataclass
 class SafariBookmarks:
@@ -95,7 +92,6 @@ class TagsWindow(QWidget):
        
         self.status_label_1 = QLabel("INFO: Adds tags to your selected bookmarks")
         self.status_label_2 = QLabel("Exit with <Ctrl> T")
-        self.status_label = QLabel("")
         self.table = table
         self.tags_input_field = QLineEdit()
         self.add_button = QPushButton("Add Tag [Enter]")
@@ -123,7 +119,6 @@ class TagsWindow(QWidget):
         layout.addStretch()
         layout.addWidget(self.status_label_1)
         layout.addWidget(self.status_label_2)
-        layout.addWidget(self.status_label)
         self.setLayout(layout)
 
         self.populate_tag_checkboxes()
@@ -240,8 +235,8 @@ class TagsWindow(QWidget):
             save_tags(tag_map)
             self.tags_input_field.clear()
             self.populate_tag_checkboxes()
-            self.status_label.setText("Tag(s) saved")
-            QTimer.singleShot(1000, self.status_label.clear)
+            self.status_label_1.setText("Tag(s) saved")
+            QTimer.singleShot(1000, self.status_label_1.clear)
     
     def delete_tags(self):
         tag_map = load_tags()
@@ -298,18 +293,19 @@ class TagsWindow(QWidget):
         save_tags(tag_map)
         self.tags_input_field.clear()
         self.populate_tag_checkboxes()
-        self.status_label.setText("Tag(s) deleted")
-        QTimer.singleShot(1000, self.status_label.clear)
+        self.status_label_1.setText("Tag(s) deleted")
+        QTimer.singleShot(1000, self.status_label_1.clear)
     
 
 
 class Table():
-    def __init__(self, mydict, line) -> None:
+    def __init__(self, mydict, extended_search_line) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.extended_search_line = extended_search_line
 
         # define colors 
         self.col_name = "#cfffed"
@@ -372,14 +368,11 @@ class Table():
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
 
-        # table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
-        # table.verticalHeader().setDefaultSectionSize(60)
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         table.resizeRowsToContents()
 
     def get_all_tags(self):
-        # immer aktuelle verfügbare Tags zurückgeben
         return sorted(self.set_of_tags)
 
     def filter_table(self, filter_text: str, used_tags=None):
@@ -398,6 +391,10 @@ class Table():
             if tag.strip()
         ]
 
+        url_substring = ""
+        if self.extended_search_line is not None:
+            url_substring = (self.extended_search_line.text() or "").strip()
+
         visible_tags = set()
 
         try: 
@@ -409,7 +406,13 @@ class Table():
                     for tag in tags.split(",")
                     if tag.strip()
                 ]
-                match = all(ftag in row_tags for ftag in filter_tags)
+                tag_match = all(ftag in row_tags for ftag in filter_tags)
+
+                url_item = table.item(row, 1)
+                url_text = url_item.text() if url_item else ""
+                url_match = (not url_substring) or (url_substring in url_text)
+
+                match = tag_match and url_match
                 table.setRowHidden(row, not match)
 
                 if match:
@@ -420,6 +423,38 @@ class Table():
         # available tags, i.e. tags of visible table rows minus those selected via dropdown
         self.set_of_tags = visible_tags - used_tags
                 
+    def open_selected_boomarks_urls(self):
+        indexes = self.table.selectionModel().selectedRows()
+
+        list_of_urls_to_open = []
+        for bookmark in indexes:
+            row = bookmark.row()
+            bookmark_url = self.table.item(row,1)
+            if bookmark_url is None:
+                continue
+            url = bookmark_url.text()
+            
+            list_of_urls_to_open.append(url)
+
+        url_list = ",".join(f'"{u}"' for u in list_of_urls_to_open)
+
+        script = f'''
+        set theURLs to {{{url_list}}}
+
+        tell application "Safari"
+            if not (exists document 1) then
+                make new document
+            end if
+            tell window 1
+                    repeat with u in theURLs
+                        make new tab with properties {{URL:u}}
+                    end repeat
+            end tell
+            activate
+        end tell
+        '''
+
+        subprocess.run(["osascript", "-e", script])
 
 class LineEdit(QLineEdit):
     def __init__(self, table_obj, dropdown, *args, **kwargs):
@@ -585,22 +620,31 @@ class MainWindow(QMainWindow):
         self.line = None 
         # self.mydict = self.return_input_list()
         self.mydict = build_table_dict()
+       
+        self.open_selected_boomarks_urls = None 
+
         self.setWindowTitle("BookmarksTagger")
-        self.table = Table(self.mydict, self.line)
+
         self.button = QPushButton("[t]ags: add/del")
         self.dropdown = QListWidget()
         self.dropdown.hide()
         
-        self.line = LineEdit(self.table, self.dropdown)
-        self.line.setPlaceholderText("[s]")
 
         self.line_delete_button = QPushButton("[c]lear")
         self.extended_search_button = QPushButton("▾ Details")
         self.extended_search_button.clicked.connect(self.on_button_details_clicked)
         self.extended_search_line = QLineEdit()
         self.extended_search_line.setPlaceholderText("substring of urls")
+        self.extended_search_line.textChanged.connect(
+            lambda _: self.table.filter_table(self.line.text())
+        )
         self.extended_search_line.hide()
         # self.set_of_tags = None 
+
+        self.table = Table(self.mydict, self.extended_search_line)
+
+        self.line = LineEdit(self.table, self.dropdown)
+        self.line.setPlaceholderText("[s]")
 
         self.info = QLabel("Hotkeys: use ctrl+[key]")
         self.button.clicked.connect(self.on_tags_button_clicked)
@@ -615,6 +659,12 @@ class MainWindow(QMainWindow):
 
         self.line_shortcut = QShortcut(QKeySequence("Meta+S"), self)
         self.line_shortcut.activated.connect(self.go_to_search_bar)
+
+        self.open_selected_boomarks_urls = self.table.open_selected_boomarks_urls
+        self.shortcut_open_selecte_bookmarks_url = QShortcut(QKeySequence("Meta+X"), self)
+        self.shortcut_open_selecte_bookmarks_url.setContext(Qt.ApplicationShortcut)
+        self.shortcut_open_selecte_bookmarks_url.activated.connect(self.open_selected_boomarks_urls)
+
 
         line_layout = QHBoxLayout()
         line_layout.addWidget(self.line)
@@ -670,7 +720,8 @@ class MainWindow(QMainWindow):
             self.extended_search_line.show()
             self.extended_search_button.setText("▾ Details")
 
-
+    def open_selected_bookmarks(self):
+        self.open_selected_boomarks_urls()
     
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
