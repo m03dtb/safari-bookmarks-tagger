@@ -13,12 +13,35 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem,
-    QHeaderView,
+    QHeaderView, QAbstractItemView
 )
 
 # CONSTANT VARIABLES 
 TAGS_JSON = Path("tags.json")
 BOOKMARKS_PLIST = Path("~/Library/Safari/Bookmarks.plist").expanduser()
+
+
+class TagsWindow(QWidget):
+    def __init__(self, table, height) -> None:
+        super().__init__()
+        self.setWindowTitle("Tags")
+
+        self.setGeometry(0, 0, 300,(height/2))
+
+        self.tags_input_field = QLineEdit()
+
+        indexes = table.selectionModel().selectedRows()
+        print("Anzahl selektierter Zeilen:", len(indexes))
+        for idx in sorted(indexes):
+            print(f"ROW: {idx}")
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.tags_input_field)
+        self.setLayout(layout)
+
+
+    def add_tags(self):
+        pass
 
 
 @dataclass
@@ -87,6 +110,8 @@ class Table():
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         # define colors 
         self.col_name = "#cfffed"
@@ -125,7 +150,6 @@ class Table():
                 if tag:
                     all_tags.add(tag)
 
-
         for row, (name, data) in enumerate(mydict.items()):
             url = data["url"]
             # TODO: wieder auf data["tags"] zurücksetzen 
@@ -143,14 +167,13 @@ class Table():
             label.setText(display_text)
             label.setTextFormat(Qt.RichText)   # wichtig für HTML
             label.setWordWrap(True)
+            label.setAttribute(Qt.WA_TransparentForMouseEvents)
 
             # HTML in Spalte 0 anzeigen
             table.setCellWidget(row, 0, label)
 
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
-
-            # table.resizeRowToContents()
 
         table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
         table.verticalHeader().setDefaultSectionSize(60)
@@ -232,7 +255,6 @@ class LineEdit(QLineEdit):
         super().focusOutEvent(event)
         self.dropdown.hide()
 
-
     def on_text_changed(self, text: str):
         text = text or ""
         # Alle Teile (inkl. Stub)
@@ -281,8 +303,6 @@ class LineEdit(QLineEdit):
         for score, tag in scored:
             if score >= 50:
                 self.dropdown.addItem(tag)
-
-
 
     def on_return_pressed(self):
         """Tag aus der aktuellen Dropdown-Auswahl in die Zeile übernehmen."""
@@ -348,21 +368,19 @@ class LineEdit(QLineEdit):
 
             old_text = self.text()
             new_text = re.sub(r'[^,]+,?$', '', old_text)
-
             self.setText(new_text)
 
             return 
 
         super().keyPressEvent(event)
 
-
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
         screen = QApplication.primaryScreen().geometry()
-        _, height =  screen.width(), screen.height()
-        self.setGeometry(0, 0, 700,height)
+        _, height = screen.width(), screen.height()
+        self.setGeometry(0, 0, 700, height)
 
 
         self.line = None 
@@ -370,11 +388,14 @@ class MainWindow(QMainWindow):
         self.mydict = build_table_dict()
         self.setWindowTitle("MyApp")
         self.table = Table(self.mydict, self.line)
-        self.button = QPushButton("Pressme")
+        self.button = QPushButton("+Tags")
         self.dropdown = QListWidget()
         self.dropdown.hide()
         self.line = LineEdit(self.table, self.dropdown)
         # self.set_of_tags = None 
+
+        self.button.clicked.connect(self.on_tags_button_clicked)
+
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
@@ -397,8 +418,15 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
 
+    def on_tags_button_clicked(self):
+        if not hasattr(self, "tags_window"):
+            self.tags_window = TagsWindow(self.table.table, self.height())
 
+        self.tags_window.show()
+        self.tags_window.raise_()
+        self.tags_window.activateWindow()
 
+    
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
     # print(plist_path)
