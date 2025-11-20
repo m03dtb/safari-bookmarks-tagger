@@ -97,10 +97,11 @@ class TagsWindow(QWidget):
         self.add_button = QPushButton("Add Tag [Enter]")
         self.add_button.clicked.connect(self.add_tags)
         
-
         self.tags_input_field.returnPressed.connect(self.add_tags)
-        self.delete_button = QPushButton("Delete Tag(s)")
+        self.delete_button = QPushButton("Delete selected Tag(s)")
         self.delete_button.clicked.connect(self.delete_tags)
+        self.shortcut_delete_button = QShortcut(QKeySequence("Meta+D"), self)
+        self.shortcut_delete_button.activated.connect(self.delete_tags)
 
         self.tag_checkboxes: list[QCheckBox] = []
         self.checkboxes_layout = QVBoxLayout()
@@ -277,8 +278,8 @@ class TagsWindow(QWidget):
                 )
                 label.setText(new_html)
 
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.resizeRowsToContents()
 
 
@@ -288,8 +289,8 @@ class Table():
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.extended_search_line = extended_search_line
 
         # define colors 
@@ -343,9 +344,9 @@ class Table():
 
             label = QLabel()
             label.setText(display_text)
-            label.setTextFormat(Qt.RichText)   # wichtig für HTML
+            label.setTextFormat(Qt.TextFormat.RichText)   # wichtig für HTML
             label.setWordWrap(True)
-            label.setAttribute(Qt.WA_TransparentForMouseEvents)
+            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
             # HTML in Spalte 0 anzeigen
             table.setCellWidget(row, 0, label)
@@ -353,12 +354,14 @@ class Table():
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
 
-        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         table.resizeRowsToContents()
 
-    def get_all_tags(self) -> set[str]:
-        """desc: returns: set of tags"""
+
+    # other functions
+    def get_all_tags(self) -> list[str]:
+        """desc: returns sorted list of tags"""
         return sorted(self.set_of_tags)
 
     def filter_table(self, filter_text: str, used_tags=None):
@@ -469,9 +472,9 @@ class Table():
 
             label = QLabel()
             label.setText(display_text)
-            label.setTextFormat(Qt.RichText)   # wichtig für HTML
+            label.setTextFormat(Qt.TextFormat.RichText)   # wichtig für HTML
             label.setWordWrap(True)
-            label.setAttribute(Qt.WA_TransparentForMouseEvents)
+            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
             # HTML in Spalte 0 anzeigen
             table.setCellWidget(row, 0, label)
@@ -479,8 +482,8 @@ class Table():
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
 
-        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         table.resizeRowsToContents()
 
 
@@ -638,11 +641,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, 700, height)
 
 
-        self.line = None 
-        # self.mydict = self.return_input_list()
         self.mydict = build_table_dict()
-       
-        self.open_selected_boomarks_urls = None 
 
         self.setWindowTitle("BookmarksTagger_RELEASE")
 
@@ -651,7 +650,7 @@ class MainWindow(QMainWindow):
         self.update_safari_bookmarks = load_safari_bookmarks
         self.button_update_safari_bookmarks.clicked.connect(self.on_button_load_safari_bookmarks_updated)
         self.shortcut_button_update_safari_bookmarks = QShortcut(QKeySequence("Meta+R"), self)
-        self.shortcut_button_update_safari_bookmarks.setContext(Qt.ApplicationShortcut)
+        self.shortcut_button_update_safari_bookmarks.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.shortcut_button_update_safari_bookmarks.activated.connect(self.on_button_load_safari_bookmarks_updated)
 
         self.button = QPushButton("[t]ags: add/del")
@@ -664,9 +663,6 @@ class MainWindow(QMainWindow):
         self.extended_search_button.clicked.connect(self.on_button_details_clicked)
         self.extended_search_line = QLineEdit()
         self.extended_search_line.setPlaceholderText("substring of urls")
-        self.extended_search_line.textChanged.connect(
-            lambda _: self.table.filter_table(self.line.text())
-        )
         self.extended_search_line.hide()
         # self.set_of_tags = None 
 
@@ -674,12 +670,15 @@ class MainWindow(QMainWindow):
 
         self.line = LineEdit(self.table, self.dropdown)
         self.line.setPlaceholderText("[s]")
+        self.extended_search_line.textChanged.connect(
+            lambda _: self.table.filter_table(self.line.text())
+        )
 
         self.info = QLabel("Hotkeys: use ctrl+[key]")
         self.button.clicked.connect(self.on_tags_button_clicked)
         self.shortcut_button = QShortcut(QKeySequence("Meta+T"), self)
         # make shortcut globally accessible 
-        self.shortcut_button.setContext(Qt.ApplicationShortcut)  # <── das fehlt
+        self.shortcut_button.setContext(Qt.ShortcutContext.ApplicationShortcut)  # <── das fehlt
         self.shortcut_button.activated.connect(self.on_tags_button_clicked)
 
         self.line_delete_button.clicked.connect(self.on_line_delete_button_clicked)
@@ -691,7 +690,7 @@ class MainWindow(QMainWindow):
 
         self.open_selected_boomarks_urls = self.table.open_selected_boomarks_urls
         self.shortcut_open_selecte_bookmarks_url = QShortcut(QKeySequence("Meta+X"), self)
-        self.shortcut_open_selecte_bookmarks_url.setContext(Qt.ApplicationShortcut)
+        self.shortcut_open_selecte_bookmarks_url.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.shortcut_open_selecte_bookmarks_url.activated.connect(self.open_selected_boomarks_urls)
 
 
@@ -750,7 +749,14 @@ class MainWindow(QMainWindow):
         self.line.clear()
 
     def go_to_search_bar(self):
-        self.line.setFocus()
+        # Toggle focus between search bar and first table cell
+        if self.line.hasFocus():
+            table_widget = self.table.table
+            if table_widget.rowCount() and table_widget.columnCount():
+                table_widget.setCurrentCell(0, 0)
+            table_widget.setFocus()
+        else:
+            self.line.setFocus()
 
     def on_button_details_clicked(self):
         if self.extended_search_line.isVisible():
