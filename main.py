@@ -11,7 +11,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QTimer
 from PySide6.QtWidgets import (
-    QApplication, QMessageBox, QWidget, QMainWindow, QPushButton,
+    QApplication, QBoxLayout, QMessageBox, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QCheckBox
@@ -357,7 +357,8 @@ class Table():
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         table.resizeRowsToContents()
 
-    def get_all_tags(self):
+    def get_all_tags(self) -> set[str]:
+        """desc: returns: set of tags"""
         return sorted(self.set_of_tags)
 
     def filter_table(self, filter_text: str, used_tags=None):
@@ -409,20 +410,27 @@ class Table():
         self.set_of_tags = visible_tags - used_tags
                 
     def open_selected_boomarks_urls(self):
+        """desc: opens each selected entry in a separate new Safari tab"""
         indexes = self.table.selectionModel().selectedRows()
 
         list_of_urls_to_open = []
+        # iterate over the selected bookmark entries 
         for bookmark in indexes:
+            # extract each selected bookmark's url 
             row = bookmark.row()
             bookmark_url = self.table.item(row,1)
             if bookmark_url is None:
                 continue
             url = bookmark_url.text()
-            
+        
+            # save extracted urls in a list
             list_of_urls_to_open.append(url)
 
+        # create comma-separated string of list of urls to open
         url_list = ",".join(f'"{u}"' for u in list_of_urls_to_open)
 
+        # Apple Script to open each selected bookmark entry 
+        # in a separate new tab
         script = f'''
         set theURLs to {{{url_list}}}
 
@@ -485,14 +493,13 @@ class LineEdit(QLineEdit):
 
         # KEY PRESSING ELEMENTS 
         self.textChanged.connect(self.on_text_changed)
-        # Enter im LineEdit
+        # if pressed Enter in SearchBar
         self.returnPressed.connect(self.on_return_pressed)
         # Enter/Doppelklick im Dropdown löst die gleiche Logik aus
         self.dropdown.itemActivated.connect(self.on_dropdown_item_activated)
 
     def on_dropdown_item_activated(self, item):
         """Called when pressed 'return' in the dropdown menu"""
-        # Nutzt dieselbe Logik wie Enter im LineEdit
         self.on_return_pressed()
 
     def focusInEvent(self, event):
@@ -511,7 +518,7 @@ class LineEdit(QLineEdit):
 
     def on_text_changed(self, text: str):
         text = text or ""
-        # Alle Teile (inkl. Stub)
+        # split string in SearchBar and create list of comma-sep strings
         parts = [p.strip() for p in text.split(",") if p.strip()]
 
         # fertige Tags und Stub bestimmen
@@ -529,11 +536,6 @@ class LineEdit(QLineEdit):
 
         used_tags = selected_tags
 
-        # Tabellenfilter: alle fertigen Tags + ggf. Stub -> UND
-        # filter_tags = list(selected_tags)
-        # if user_input:
-        #     filter_tags.append(user_input)
-        # filter_text = ",".join(filter_tags)
         filter_text = ",".join(selected_tags)
 
         self.table_obj.filter_table(filter_text, used_tags)
@@ -560,7 +562,7 @@ class LineEdit(QLineEdit):
                 self.dropdown.addItem(tag)
 
     def on_return_pressed(self):
-        """Tag aus der aktuellen Dropdown-Auswahl in die Zeile übernehmen."""
+        """Take tag from dropdown and put it into SearchBar as a string"""
         item = self.dropdown.currentItem()
         if item is None and self.dropdown.count() > 0:
             item = self.dropdown.item(0)
@@ -605,10 +607,8 @@ class LineEdit(QLineEdit):
 
             # row = currently selected row
             row = self.dropdown.currentRow()
-            # if no row selected 
-            if row  < 0:
-                # start at first row 
-                row = 0
+            if row  < 0: # if no row selected 
+                row = 0 # start at first row 
             # if focus not yet on last element 
             elif row < count -1: 
                 # on keypress down: go to next row 
@@ -660,7 +660,7 @@ class MainWindow(QMainWindow):
         
 
         self.line_delete_button = QPushButton("[c]lear")
-        self.extended_search_button = QPushButton("▾ Details")
+        self.extended_search_button = QPushButton("▶ Details")
         self.extended_search_button.clicked.connect(self.on_button_details_clicked)
         self.extended_search_line = QLineEdit()
         self.extended_search_line.setPlaceholderText("substring of urls")
@@ -695,17 +695,17 @@ class MainWindow(QMainWindow):
         self.shortcut_open_selecte_bookmarks_url.activated.connect(self.open_selected_boomarks_urls)
 
 
-        line_layout = QHBoxLayout()
-        line_layout.addWidget(self.line)
-        line_layout.addWidget(self.line_delete_button)
-        line_layout.addWidget(self.extended_search_button)
+        self.line_layout = QHBoxLayout()
+        self.line_layout.addWidget(self.line)
+        self.line_layout.addWidget(self.line_delete_button)
+        self.line_layout.addWidget(self.extended_search_button)
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.info)
 
-        button_layout2 = QHBoxLayout()
-        button_layout2.addWidget(self.button)
-        button_layout2.addWidget(self.button_update_safari_bookmarks)
+        self.button_layout2 = QHBoxLayout()
+        self.button_layout2.addWidget(self.button)
+        self.button_layout2.addWidget(self.button_update_safari_bookmarks)
 
 
         # LAYOUT 
@@ -716,9 +716,9 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
 
         upper_layout.addLayout(button_layout)
-        upper_layout2.addLayout(button_layout2)
+        upper_layout2.addLayout(self.button_layout2)
         middle_layout.addWidget(self.table.table)
-        bottom_layout.addLayout(line_layout)
+        bottom_layout.addLayout(self.line_layout)
         bottom_layout.addWidget(self.dropdown)
         bottom_layout.addWidget(self.extended_search_line)
 
@@ -732,6 +732,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
     def on_tags_button_clicked(self):
+        """
+        window: tags_window
+        """
         if not hasattr(self, "tags_window"):
             self.tags_window = TagsWindow(self.table.table, self.height())
 
@@ -752,21 +755,36 @@ class MainWindow(QMainWindow):
     def on_button_details_clicked(self):
         if self.extended_search_line.isVisible():
             self.extended_search_line.hide()
-            self.extended_search_button.setText("▸ Details")
+            self.extended_search_button.setText("▶Details")
         else:
             self.extended_search_line.show()
-            self.extended_search_button.setText("▾ Details")
+            self.extended_search_button.setText("▼Details")
 
     def open_selected_bookmarks(self):
         self.open_selected_boomarks_urls()
 
    
     def on_button_load_safari_bookmarks_updated(self):
-        # neue Daten holen
+        """get data from bookmarks plist and save them as dict"""
         self.mydict = build_table_dict()
-        # bestehende Table damit neu füllen
+        # fill existing table with the new data 
         self.table.reload(self.mydict)
 
+    # RESIZE EVENTS 
+    def resizeEvent(self, event):
+        """Contains and calls all resize functions"""
+        self.auto_resize(event)
+        super().resizeEvent(event)
+
+    def auto_resize(self, event):
+        """Reorder elements vertically if small width"""
+        if self.width() < 400:
+            self.button_layout2.setDirection(QBoxLayout.TopToBottom)
+            self.line_layout.setDirection(QBoxLayout.TopToBottom)
+        else:
+            self.button_layout2.setDirection(QBoxLayout.LeftToRight)
+            self.line_layout.setDirection(QBoxLayout.LeftToRight)
+        
 
 def main():
     # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
