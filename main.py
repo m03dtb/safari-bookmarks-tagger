@@ -11,7 +11,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QTimer
 from PySide6.QtWidgets import (
-    QApplication, QBoxLayout, QMessageBox, QWidget, QMainWindow, QPushButton,
+    QApplication, QBoxLayout, QLayout, QMessageBox, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
     QTableView, QTableWidget, QListWidget, QTableWidgetItem,
     QHeaderView, QAbstractItemView, QCheckBox
@@ -98,7 +98,7 @@ class TagsWindow(QWidget):
         self.add_button.clicked.connect(self.add_tags)
         
         self.tags_input_field.returnPressed.connect(self.add_tags)
-        self.delete_button = QPushButton("Delete selected Tag(s)")
+        self.delete_button = QPushButton("[D]elete selected Tag(s)")
         self.delete_button.clicked.connect(self.delete_tags)
         self.shortcut_delete_button = QShortcut(QKeySequence("Meta+D"), self)
         self.shortcut_delete_button.activated.connect(self.delete_tags)
@@ -107,8 +107,18 @@ class TagsWindow(QWidget):
         self.checkboxes_layout = QVBoxLayout()
         self.checkboxes_layout.setContentsMargins(0, 0, 0, 0)
         self.checkboxes_layout.setSpacing(0)
-    
+   
+        self.reverse_selected_button = QPushButton("[i]nvert_Sel")
+        self.reverse_selected_button.clicked.connect(self.reverse_selected_checkboxes)
+        self.reverse_selected_shortcut = QShortcut(QKeySequence("Meta + I"), self)
+        self.reverse_selected_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.reverse_selected_shortcut.activated.connect(self.reverse_selected_checkboxes)
 
+        self.select_delete_label = QLabel("Select tags to del: ")
+
+        self.selection_layout = QHBoxLayout()
+        self.selection_layout.addWidget(self.select_delete_label)
+        self.selection_layout.addWidget(self.reverse_selected_button)
 
         # indexes = table.selectionModel().selectedRows()
         # print("Anzahl selektierter Zeilen:", len(indexes))
@@ -118,7 +128,7 @@ class TagsWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.tags_input_field)
         layout.addWidget(self.add_button)
-        layout.addWidget(QLabel("Select tags to delete:"))
+        layout.addLayout(self.selection_layout)
         layout.addLayout(self.checkboxes_layout)
         layout.addWidget(self.delete_button)
         layout.addStretch()
@@ -203,7 +213,9 @@ class TagsWindow(QWidget):
             self.status_label_1.setText("Tag(s) saved")
             QTimer.singleShot(1000, self.status_label_1.clear)
 
-    
+    def reverse_selected_checkboxes(self) -> None:
+        for checkbox in self.tag_checkboxes:
+            checkbox.setChecked(not checkbox.isChecked())
 
     def delete_tags(self):
         tag_map = load_tags()
@@ -240,7 +252,6 @@ class TagsWindow(QWidget):
         self.populate_tag_checkboxes()
         self.status_label_1.setText("Tag(s) deleted")
         QTimer.singleShot(1000, self.status_label_1.clear)
-   
 
     def _apply_tag_map_to_selection(self, tag_map, indexes):
         """Gemeinsamer Code zum Aktualisieren der Tabelle und Labels
@@ -487,7 +498,6 @@ class Table():
         table.resizeRowsToContents()
 
 
-
 class LineEdit(QLineEdit):
     def __init__(self, table_obj, dropdown, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -693,7 +703,6 @@ class MainWindow(QMainWindow):
         self.shortcut_open_selecte_bookmarks_url.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.shortcut_open_selecte_bookmarks_url.activated.connect(self.open_selected_boomarks_urls)
 
-
         self.line_layout = QHBoxLayout()
         self.line_layout.addWidget(self.line)
         self.line_layout.addWidget(self.line_delete_button)
@@ -772,9 +781,14 @@ class MainWindow(QMainWindow):
    
     def on_button_load_safari_bookmarks_updated(self):
         """get data from bookmarks plist and save them as dict"""
+        btn = self.button_update_safari_bookmarks
         self.mydict = build_table_dict()
         # fill existing table with the new data 
         self.table.reload(self.mydict)
+        # short visual feedback on reload button
+        old_style = btn.styleSheet()
+        btn.setStyleSheet("background-color: #c5fbc5;")
+        QTimer.singleShot(1000, lambda: btn.setStyleSheet(old_style))
 
     # RESIZE EVENTS 
     def resizeEvent(self, event):
