@@ -701,23 +701,29 @@ class MainWindow(QMainWindow):
         line_layout.addWidget(self.extended_search_button)
 
         button_layout = QHBoxLayout()
-        button_layout.addWidget(self.button)
         button_layout.addWidget(self.info)
-        button_layout.addWidget(self.button_update_safari_bookmarks)
+
+        button_layout2 = QHBoxLayout()
+        button_layout2.addWidget(self.button)
+        button_layout2.addWidget(self.button_update_safari_bookmarks)
+
 
         # LAYOUT 
         upper_layout = QHBoxLayout()
+        upper_layout2= QHBoxLayout()
         middle_layout = QHBoxLayout()
         bottom_layout = QVBoxLayout()
         main_layout = QVBoxLayout()
 
         upper_layout.addLayout(button_layout)
+        upper_layout2.addLayout(button_layout2)
         middle_layout.addWidget(self.table.table)
         bottom_layout.addLayout(line_layout)
         bottom_layout.addWidget(self.dropdown)
         bottom_layout.addWidget(self.extended_search_line)
 
         main_layout.addLayout(upper_layout)
+        main_layout.addLayout(upper_layout2)
         main_layout.addLayout(middle_layout)
         main_layout.addLayout(bottom_layout)
 
