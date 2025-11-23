@@ -1,3 +1,4 @@
+#hallo
 import pathlib
 import sys
 import json
@@ -296,13 +297,14 @@ class TagsWindow(QWidget):
 
 
 class Table():
-    def __init__(self, mydict, extended_search_line) -> None:
+    def __init__(self, mydict, extended_search_line, extended_search_line_name) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.extended_search_line = extended_search_line
+        self.extended_search_line_name = extended_search_line_name
 
         # define colors 
         self.col_name = "#cfffed"
@@ -325,12 +327,13 @@ class Table():
         # CREATE TABLE with the columns "name" and "tags"
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
-        header_labels = ["Bookmarks", "URL", "Tags"]
+        header_labels = ["Bookmarks", "URL", "Tags", "Name"]
         table.setColumnCount(len(header_labels))
         table.setHorizontalHeaderLabels(header_labels)
 
         table.setColumnHidden(1, True)
         table.setColumnHidden(2, True)
+        table.setColumnHidden(3, True)
 
         table.verticalHeader().hide() # hide row numbers
 
@@ -342,7 +345,7 @@ class Table():
                     all_tags.add(tag)
 
         for row, (name, data) in enumerate(mydict.items()):
-            url = data["url"]
+            url = data["url"][:100]
             tags_str = data["tags"]
 
             display_text = (
@@ -364,6 +367,7 @@ class Table():
 
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
+            table.setItem(row, 3, QTableWidgetItem(name))
 
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -393,7 +397,11 @@ class Table():
 
         url_substring = ""
         if self.extended_search_line is not None:
-            url_substring = (self.extended_search_line.text() or "").strip()
+            url_substring = (self.extended_search_line.text() or "").strip().lower()
+        
+        name_substring = ""
+        if self.extended_search_line_name is not None:
+            name_substring = (self.extended_search_line_name.text() or "").strip().lower()
 
         visible_tags = set()
 
@@ -409,10 +417,15 @@ class Table():
                 tag_match = all(ftag in row_tags for ftag in filter_tags)
 
                 url_item = table.item(row, 1)
-                url_text = url_item.text() if url_item else ""
+                url_text = url_item.text().lower() if url_item else ""
                 url_match = (not url_substring) or (url_substring in url_text)
 
-                match = tag_match and url_match
+
+                name_item = table.item(row, 3)
+                name_text = name_item.text().lower() if name_item else ""
+                name_match = (not name_substring) or (name_substring in name_text)
+
+                match = tag_match and url_match and name_match
                 table.setRowHidden(row, not match)
 
                 if match:
@@ -492,6 +505,7 @@ class Table():
 
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
+            table.setItem(row, 3, QTableWidgetItem(name))
 
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -674,15 +688,24 @@ class MainWindow(QMainWindow):
         self.extended_search_line = QLineEdit()
         self.extended_search_line.setPlaceholderText("substring of urls")
         self.extended_search_line.hide()
+
+        self.extended_search_line_name = QLineEdit()
+        self.extended_search_line_name.setPlaceholderText("substring of name")
+        self.extended_search_line_name.hide()
         # self.set_of_tags = None 
 
-        self.table = Table(self.mydict, self.extended_search_line)
+        self.table = Table(self.mydict, self.extended_search_line, self.extended_search_line_name)
 
         self.line = LineEdit(self.table, self.dropdown)
         self.line.setPlaceholderText("[s]")
         self.extended_search_line.textChanged.connect(
             lambda _: self.table.filter_table(self.line.text())
         )
+        self.extended_search_line_name.textChanged.connect(
+            lambda _: self.table.filter_table(self.line.text())
+        )
+
+
 
         self.info = QLabel("Hotkeys: use ctrl+[key]")
         self.button.clicked.connect(self.on_tags_button_clicked)
@@ -729,6 +752,7 @@ class MainWindow(QMainWindow):
         bottom_layout.addLayout(self.line_layout)
         bottom_layout.addWidget(self.dropdown)
         bottom_layout.addWidget(self.extended_search_line)
+        bottom_layout.addWidget(self.extended_search_line_name)
 
         main_layout.addLayout(upper_layout)
         main_layout.addLayout(upper_layout2)
@@ -773,6 +797,14 @@ class MainWindow(QMainWindow):
             self.extended_search_button.setText("▶Details")
         else:
             self.extended_search_line.show()
+            self.extended_search_button.setText("▼Details")
+
+
+        if self.extended_search_line_name.isVisible():
+            self.extended_search_line_name.hide()
+            self.extended_search_button.setText("▶Details")
+        else:
+            self.extended_search_line_name.show()
             self.extended_search_button.setText("▼Details")
 
     def open_selected_bookmarks(self):
