@@ -788,7 +788,7 @@ class MainWindow(QMainWindow):
         # short visual feedback on reload button
         old_style = btn.styleSheet()
         btn.setStyleSheet("background-color: #c5fbc5;")
-        QTimer.singleShot(1000, lambda: btn.setStyleSheet(old_style))
+        QTimer.singleShot(100, lambda: btn.setStyleSheet(old_style))
 
     # RESIZE EVENTS 
     def resizeEvent(self, event):
@@ -807,8 +807,6 @@ class MainWindow(QMainWindow):
         
 
 def main():
-    # plist_path = pathlib.Path("~/Library/Safari/Bookmarks.plist").expanduser()
-    # print(plist_path)
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
