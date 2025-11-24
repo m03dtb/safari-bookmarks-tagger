@@ -10,7 +10,7 @@ import subprocess
 from dataclasses import dataclass 
 from PySide6.QtGui import QKeySequence, QShortcut
 from rapidfuzz import fuzz
-from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QTimer
+from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QTimer, QItemSelectionModel
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QLayout, QMessageBox, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel,
@@ -111,7 +111,7 @@ class TagsWindow(QWidget):
    
         self.reverse_selected_button = QPushButton("[i]nvert_Sel")
         self.reverse_selected_button.clicked.connect(self.reverse_selected_checkboxes)
-        self.reverse_selected_shortcut = QShortcut(QKeySequence("Meta + I"), self)
+        self.reverse_selected_shortcut = QShortcut(QKeySequence("Meta+I"), self)
         self.reverse_selected_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.reverse_selected_shortcut.activated.connect(self.reverse_selected_checkboxes)
 
@@ -150,6 +150,8 @@ class TagsWindow(QWidget):
         tags_set: set[str] = set()
         for idx in indexes:
             row = idx.row()
+            if self.table.isRowHidden(row):
+                continue
             url_item = self.table.item(row, 1)
             if url_item is None:
                 continue
@@ -231,6 +233,8 @@ class TagsWindow(QWidget):
 
         for idx in indexes:
             row = idx.row()
+            if self.table.isRowHidden(row):
+                continue
             url_item = self.table.item(row, 1)
             if url_item is None:
                 continue
@@ -345,7 +349,7 @@ class Table():
                     all_tags.add(tag)
 
         for row, (name, data) in enumerate(mydict.items()):
-            url = data["url"][:100]
+            url = data["url"]
             tags_str = data["tags"]
 
             display_text = (
@@ -427,6 +431,13 @@ class Table():
 
                 match = tag_match and url_match and name_match
                 table.setRowHidden(row, not match)
+
+                if not match:
+                    # Deselect rows that got hidden so stale selections do not bleed into tag actions
+                    index = table.model().index(row, 0)
+                    table.selectionModel().select(
+                        index, QItemSelectionModel.SelectionFlag.Deselect | QItemSelectionModel.SelectionFlag.Rows
+                    )
 
                 if match:
                     visible_tags.update(row_tags)
@@ -663,12 +674,9 @@ class MainWindow(QMainWindow):
         screen = QApplication.primaryScreen().geometry()
         _, height = screen.width(), screen.height()
         self.setGeometry(0, 0, 700, height)
-
-
-        self.mydict = build_table_dict()
-
         self.setWindowTitle("BookmarksTagger_RELEASE")
 
+        self.mydict = build_table_dict()
 
         self.button_update_safari_bookmarks = QPushButton("🔄[r]eload bookmarks")
         self.update_safari_bookmarks = load_safari_bookmarks
@@ -794,16 +802,10 @@ class MainWindow(QMainWindow):
     def on_button_details_clicked(self):
         if self.extended_search_line.isVisible():
             self.extended_search_line.hide()
-            self.extended_search_button.setText("▶Details")
-        else:
-            self.extended_search_line.show()
-            self.extended_search_button.setText("▼Details")
-
-
-        if self.extended_search_line_name.isVisible():
             self.extended_search_line_name.hide()
             self.extended_search_button.setText("▶Details")
         else:
+            self.extended_search_line.show()
             self.extended_search_line_name.show()
             self.extended_search_button.setText("▼Details")
 
