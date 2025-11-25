@@ -14,6 +14,8 @@ class TagsWindow(QWidget):
         self.setWindowTitle("Add / Delete Tags")
 
         self.setGeometry(0, 0, 300,(height/2))
+        # cache colors from config so we can reuse them when updating labels
+        self.colors = load_config().get("colors", {})
        
         self.status_label_1 = QLabel("INFO: Adds tags to your selected bookmarks")
         self.status_label_2 = QLabel("Exit with <Ctrl> T")
@@ -186,6 +188,11 @@ class TagsWindow(QWidget):
         """Gemeinsamer Code zum Aktualisieren der Tabelle und Labels
         für alle selektierten Zeilen basierend auf dem übergebenen tag_map.
         """
+        # refresh colors in case they were changed in the color dialog
+        self.colors = load_config().get("colors", self.colors)
+        col_url = self.colors.get("col_url", "#00ccff")
+        col_tags = self.colors.get("col_tags", "#008000")
+
         for idx in indexes:
             row = idx.row()
             url_item = self.table.item(row, 1)
@@ -212,8 +219,8 @@ class TagsWindow(QWidget):
                 new_html = (
                     "<html><body>"
                     f"{name_part}<br>"
-                    f'<span style="color:#00ccff;">{url}</span><br>'
-                    f'<span style="color:#008000;">{tags_str}</span>'
+                    f'<span style="color:{col_url};">{url}</span><br>'
+                    f'<span style="color:{col_tags};">{tags_str}</span>'
                     "</body></html>"
                 )
                 label.setText(new_html)

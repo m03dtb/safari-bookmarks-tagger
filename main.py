@@ -10,7 +10,7 @@ from line_edit import LineEdit
 from table import *
 from tags_window import *
 from constants import *
-
+from colors import *
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -19,11 +19,13 @@ class MainWindow(QMainWindow):
         screen = QApplication.primaryScreen().geometry()
         _, height = screen.width(), screen.height()
         self.setGeometry(0, 0, 700, height)
-        self.setWindowTitle("BookmarksTagger_RELEASE")
+        self.setWindowTitle("BookmarksTagger")
 
         self.mydict = build_table_dict()
 
         self.button_update_safari_bookmarks = QPushButton("🔄[r]eload bookmarks")
+        self.color_button = QPushButton("Colors")
+        self.color_button.clicked.connect(self.open_color_settings)
         self.update_safari_bookmarks = load_safari_bookmarks
         self.button_update_safari_bookmarks.clicked.connect(self.on_button_load_safari_bookmarks_updated)
         self.shortcut_button_update_safari_bookmarks = QShortcut(QKeySequence("Meta+R"), self)
@@ -88,6 +90,7 @@ class MainWindow(QMainWindow):
         self.button_layout2 = QHBoxLayout()
         self.button_layout2.addWidget(self.button)
         self.button_layout2.addWidget(self.button_update_safari_bookmarks)
+        self.button_layout2.addWidget(self.color_button)
 
 
         # LAYOUT 
@@ -165,7 +168,7 @@ class MainWindow(QMainWindow):
         # short visual feedback on reload button
         old_style = btn.styleSheet()
         btn.setStyleSheet("background-color: #c5fbc5;")
-        QTimer.singleShot(100, lambda: btn.setStyleSheet(old_style))
+        QTimer.singleShot(300, lambda: btn.setStyleSheet(old_style))
 
     # RESIZE EVENTS 
     def resizeEvent(self, event):
@@ -182,6 +185,9 @@ class MainWindow(QMainWindow):
             self.button_layout2.setDirection(QBoxLayout.LeftToRight)
             self.line_layout.setDirection(QBoxLayout.LeftToRight)
         
+    def open_color_settings(self):
+        dlg = ColorSettingsDialog(self)
+        dlg.exec()
 
 def main():
     app = QApplication(sys.argv)

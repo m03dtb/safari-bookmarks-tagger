@@ -6,6 +6,17 @@ from dataclasses import dataclass
 
 from constants import TAGS_JSON, BOOKMARKS_PLIST
 
+CONFIG_PATH = Path(__file__).with_name("config.json")
+
+DEFAULT_CONFIG = {
+    "colors": {
+        "col_name": "#cfffed",
+        "col_url": "#00ccff", 
+        "col_tags": "#008000",
+    }
+}
+
+
 @dataclass
 class SafariBookmarks:
     name: str
@@ -67,3 +78,26 @@ def build_table_dict() -> dict[str, dict[str, str]]:
     
     return table_dict
 
+
+def load_config() -> dict:
+    """Load config file or return defaults if missing/invalid."""
+    if not CONFIG_PATH.exists():
+        return DEFAULT_CONFIG.copy()
+
+    try:
+        with CONFIG_PATH.open("r", encoding="utf8") as f:
+            data = json.load(f)
+    except Exception:
+        # If file is broken, fall back to defaults
+        return DEFAULT_CONFIG.copy()
+
+    # Basic safety: ensure top-level keys exist
+    cfg = DEFAULT_CONFIG.copy()
+    cfg["colors"].update(data.get("colors", {}))
+    return cfg
+
+
+def save_config(config: dict) -> None:
+    """Save config to JSON file."""
+    with CONFIG_PATH.open("w", encoding="utf8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)

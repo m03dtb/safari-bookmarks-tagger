@@ -4,22 +4,27 @@ from PySide6.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView
         QHeaderView, QLabel)
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QItemSelectionModel
 
+from helper_functions import load_config
+import colors 
+
 class Table():
     def __init__(self, mydict, extended_search_line, extended_search_line_name) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
+        self.colors = colors
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.extended_search_line = extended_search_line
         self.extended_search_line_name = extended_search_line_name
 
+        config = load_config()
+        self.colors = config.get("colors", {})
+
         # define colors 
-        self.col_name = "#cfffed"
-        self.col_url = "#00ccff"
-        self.col_tags = "#008000"
-        # self.col_folders = "#888888"
-    
+        self.col_name = self.colors.get("col_name")
+        self.col_url  = self.colors.get("col_url")
+        self.col_tags = self.colors.get("col_tags")
 
         # Grundmenge aller EINZELNEN Tags aus dem Dict aufbauen
         all_tags = set()
