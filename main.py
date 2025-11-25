@@ -25,6 +25,13 @@ class MainWindow(QMainWindow):
         self.icon_reload_green = QIcon("./icons/reload_icon_green.svg")
         self.icon_clear = QIcon("./icons/clear_icon.svg")
 
+        #lights 
+        self.lights_off = QIcon("./icons/lights_off.svg")
+        self.lights_on = QIcon("./icons/lights_on.svg")
+        self.lights_green = QIcon("./icons/lights_green.svg")
+        self.lights_yellow = QIcon("./icons/lights_yellow.svg")
+        self.lights_red = QIcon("./icons/lights_red.svg")
+
         self.setGeometry(0, 0, 700, height)
         self.setWindowTitle("BookmarksTagger")
 
@@ -56,6 +63,12 @@ class MainWindow(QMainWindow):
         self.button.setFlat(True)
         self.button.setStyleSheet("background: none; border: 0;")
         self.button.setToolTip("Add/Delete all selected tags > select by holding Cmd and tipping on entries")
+
+        self.button_lights = QPushButton()
+        self.button_lights.setIcon(self.lights_off)
+        self.button_lights.setIconSize(QSize(32,32))
+        self.button_lights.setFlat(True)
+        self.button_lights.setStyleSheet("background: none; border:0;")
 
         self.dropdown = QListWidget()
         self.dropdown.hide()
@@ -121,6 +134,7 @@ class MainWindow(QMainWindow):
         self.button_layout2.addWidget(self.button)
         self.button_layout2.addWidget(self.button_update_safari_bookmarks)
         self.button_layout2.addWidget(self.color_button)
+        self.button_layout2.addWidget(self.button_lights)
 
 
         # LAYOUT 
