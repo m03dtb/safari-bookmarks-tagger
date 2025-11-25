@@ -19,16 +19,26 @@ class MainWindow(QMainWindow):
 
         screen = QApplication.primaryScreen().geometry()
         _, height = screen.width(), screen.height()
-        icon_colors = QIcon("./icons/color_icon.svg")
+        self.icon_colors = QIcon("./icons/color_icon.svg")
+        self.icon_tags = QIcon("./icons/tag_icon.svg")
+        self.icon_reload = QIcon("./icons/reload_icon.svg")
+        self.icon_reload_green = QIcon("./icons/reload_icon_green.svg")
+        self.icon_clear = QIcon("./icons/clear_icon.svg")
 
         self.setGeometry(0, 0, 700, height)
         self.setWindowTitle("BookmarksTagger")
 
         self.mydict = build_table_dict()
 
-        self.button_update_safari_bookmarks = QPushButton("🔄[r]eload BMs")
+        self.button_update_safari_bookmarks = QPushButton()
+        self.button_update_safari_bookmarks.setIcon(self.icon_reload)
+        self.button_update_safari_bookmarks.setIconSize(QSize(32,32))
+        self.button_update_safari_bookmarks.setFlat(True)
+        self.button_update_safari_bookmarks.setStyleSheet("background: none; border: 0;")
+        self.button_update_safari_bookmarks.setToolTip("[r]eload safari bookmarks")
+
         self.color_button = QPushButton()
-        self.color_button.setIcon(icon_colors)
+        self.color_button.setIcon(self.icon_colors)
         self.color_button.setIconSize(QSize(32,32))
         self.color_button.setFlat(True)
         self.color_button.setStyleSheet("background: none; border: 0;")
@@ -40,12 +50,24 @@ class MainWindow(QMainWindow):
         self.shortcut_button_update_safari_bookmarks.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.shortcut_button_update_safari_bookmarks.activated.connect(self.on_button_load_safari_bookmarks_updated)
 
-        self.button = QPushButton("[t]ags: add/del")
+        self.button = QPushButton()
+        self.button.setIcon(self.icon_tags)
+        self.button.setIconSize(QSize(32,32))
+        self.button.setFlat(True)
+        self.button.setStyleSheet("background: none; border: 0;")
+        self.button.setToolTip("Add/Delete all selected tags > select by holding Cmd and tipping on entries")
+
         self.dropdown = QListWidget()
         self.dropdown.hide()
         
 
-        self.line_delete_button = QPushButton("[c]lear")
+        self.line_delete_button = QPushButton()
+        self.line_delete_button.setIcon(self.icon_clear)
+        self.line_delete_button.setIconSize(QSize(32,32))
+        self.line_delete_button.setFlat(True)
+        self.line_delete_button.setStyleSheet("background: none; border: 0;")
+        self.line_delete_button.setToolTip("[c]lear Tags Search")
+
         self.extended_search_button = QPushButton("▶ Details")
         self.extended_search_button.clicked.connect(self.on_button_details_clicked)
         self.extended_search_line = QLineEdit()
@@ -175,8 +197,10 @@ class MainWindow(QMainWindow):
         self.table.reload(self.mydict)
         # short visual feedback on reload button
         old_style = btn.styleSheet()
-        btn.setStyleSheet("background-color: #c5fbc5;")
-        QTimer.singleShot(300, lambda: btn.setStyleSheet(old_style))
+        btn.setIcon(self.icon_reload_green) # now-time 
+        QTimer.singleShot(250, lambda: btn.setIcon(self.icon_reload)) # now-time + t1 
+        QTimer.singleShot(550, lambda: btn.setIcon(self.icon_reload_green)) # now-time +t2 
+        QTimer.singleShot(1050, lambda: btn.setIcon(self.icon_reload)) # now-time +t3 
 
     # RESIZE EVENTS 
     def resizeEvent(self, event):
@@ -187,10 +211,10 @@ class MainWindow(QMainWindow):
     def auto_resize(self, event):
         """Reorder elements vertically if small width"""
         if self.width() < 400:
-            self.button_layout2.setDirection(QBoxLayout.TopToBottom)
+            # self.button_layout2.setDirection(QBoxLayout.TopToBottom)
             self.line_layout.setDirection(QBoxLayout.TopToBottom)
         else:
-            self.button_layout2.setDirection(QBoxLayout.LeftToRight)
+            # self.button_layout2.setDirection(QBoxLayout.LeftToRight)
             self.line_layout.setDirection(QBoxLayout.LeftToRight)
         
     def open_color_settings(self):

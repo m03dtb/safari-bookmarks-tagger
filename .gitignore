@@ -1,5 +1,6 @@
 TEST/
 ALT/
+config.json
 __pycache__/
 main_chatgpt.py
 tags.json
@@ -8,4 +9,4 @@ build_exe.sh
 notes.md
 uninstall_exe.sh
 bm_pro.spec
-
+tags.json.bak

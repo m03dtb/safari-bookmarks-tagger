@@ -33,7 +33,7 @@ class TagsWindow(QWidget):
         self.tag_checkboxes: list[QCheckBox] = []
         self.checkboxes_layout = QVBoxLayout()
         self.checkboxes_layout.setContentsMargins(0, 0, 0, 0)
-        self.checkboxes_layout.setSpacing(0)
+        self.checkboxes_layout.setSpacing(7)
    
         self.reverse_selected_button = QPushButton("[i]nvert_Sel")
         self.reverse_selected_button.clicked.connect(self.reverse_selected_checkboxes)
@@ -182,7 +182,7 @@ class TagsWindow(QWidget):
         self.tags_input_field.clear()
         self.populate_tag_checkboxes()
         self.status_label_1.setText("Tag(s) deleted")
-        QTimer.singleShot(1000, self.status_label_1.clear)
+        QTimer.singleShot(2000, self.status_label_1.clear)
 
     def _apply_tag_map_to_selection(self, tag_map, indexes):
         """Gemeinsamer Code zum Aktualisieren der Tabelle und Labels
