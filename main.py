@@ -7,11 +7,13 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtSvgWidgets import QSvgWidget
 
+import bookmark_status
 from line_edit import LineEdit
 from table import *
 from tags_window import *
 from constants import *
 from colors import *
+from bookmark_status import BookmarkStatus, LightIcons
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -25,12 +27,6 @@ class MainWindow(QMainWindow):
         self.icon_reload_green = QIcon("./icons/reload_icon_green.svg")
         self.icon_clear = QIcon("./icons/clear_icon.svg")
 
-        #lights 
-        self.lights_off = QIcon("./icons/lights_off.svg")
-        self.lights_on = QIcon("./icons/lights_on.svg")
-        self.lights_green = QIcon("./icons/lights_green.svg")
-        self.lights_yellow = QIcon("./icons/lights_yellow.svg")
-        self.lights_red = QIcon("./icons/lights_red.svg")
 
         self.setGeometry(0, 0, 700, height)
         self.setWindowTitle("BookmarksTagger")
@@ -65,11 +61,22 @@ class MainWindow(QMainWindow):
         self.button.setToolTip("Add/Delete all selected tags > select by holding Cmd and tipping on entries")
 
         self.button_lights = QPushButton()
-        self.button_lights.setIcon(self.lights_off)
+
+        # lights + bookmark status
+        self.icons = LightIcons()
+        self.bookmark_status = BookmarkStatus(self)
+        self.lights_enabled = False
+
+        # button_lights setup
+        self.button_lights.setIcon(self.icons.lights_off)
         self.button_lights.setIconSize(QSize(32,32))
         self.button_lights.setFlat(True)
         self.button_lights.setStyleSheet("background: none; border:0;")
-
+        # connect button click -> manual check trigger
+        self.button_lights.clicked.connect(self.on_button_lights_clicked)
+        # connect bookmark status -> icon update
+        self.bookmark_status.bookmark_checked.connect(self.update_light_icon)
+            
         self.dropdown = QListWidget()
         self.dropdown.hide()
         
@@ -239,6 +246,33 @@ class MainWindow(QMainWindow):
     def on_colors_changed(self, colors: dict):
         """Refresh table colors after the dialog saves."""
         self.table.update_colors(colors)
+
+    def on_button_lights_clicked(self):
+        # toggle monitoring mode on/off
+        self.lights_enabled = not self.lights_enabled
+
+        if not self.lights_enabled:
+            self.bookmark_status.stop()
+            self.button_lights.setIcon(self.icons.lights_off)
+            return
+
+        # lights on: start monitoring and perform immediate check
+        self.button_lights.setIcon(self.icons.lights_on)
+        self.bookmark_status.start()
+        self.bookmark_status.check_frontmost_url_changed(force=True)
+
+    def update_light_icon(self, exists: bool | None) -> None:
+        """Update the lights icon depending on bookamrk existence."""
+        if not self.lights_enabled:
+            return
+
+        if exists is None:
+            self.button_lights.setIcon(self.icons.lights_yellow)
+        elif exists:
+            self.button_lights.setIcon(self.icons.lights_green)
+        else:
+            self.button_lights.setIcon(self.icons.lights_red)
+
 
 def main():
     app = QApplication(sys.argv)
