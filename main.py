@@ -261,15 +261,17 @@ class MainWindow(QMainWindow):
         self.bookmark_status.start()
         self.bookmark_status.check_frontmost_url_changed(force=True)
 
-    def update_light_icon(self, exists: bool | None) -> None:
-        """Update the lights icon depending on bookamrk existence."""
+    def update_light_icon(self, status: str | None) -> None:
+        """Update the lights icon depending on bookmark existence."""
         if not self.lights_enabled:
             return
 
-        if exists is None:
-            self.button_lights.setIcon(self.icons.lights_yellow)
-        elif exists:
+        if status is None:
+            self.button_lights.setIcon(self.icons.lights_off)
+        elif status == "full":
             self.button_lights.setIcon(self.icons.lights_green)
+        elif status == "domain":
+            self.button_lights.setIcon(self.icons.lights_yellow)
         else:
             self.button_lights.setIcon(self.icons.lights_red)
 
