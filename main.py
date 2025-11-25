@@ -1,10 +1,11 @@
 import sys 
-from PySide6.QtGui import QKeySequence, QShortcut
-from PySide6.QtCore import Qt,QTimer
+from PySide6.QtGui import QKeySequence, QShortcut, QIcon
+from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget
 )
+from PySide6.QtSvgWidgets import QSvgWidget
 
 from line_edit import LineEdit
 from table import *
@@ -18,13 +19,20 @@ class MainWindow(QMainWindow):
 
         screen = QApplication.primaryScreen().geometry()
         _, height = screen.width(), screen.height()
+        icon_colors = QIcon("./icons/color_icon.svg")
+
         self.setGeometry(0, 0, 700, height)
         self.setWindowTitle("BookmarksTagger")
 
         self.mydict = build_table_dict()
 
-        self.button_update_safari_bookmarks = QPushButton("🔄[r]eload bookmarks")
-        self.color_button = QPushButton("Colors")
+        self.button_update_safari_bookmarks = QPushButton("🔄[r]eload BMs")
+        self.color_button = QPushButton()
+        self.color_button.setIcon(icon_colors)
+        self.color_button.setIconSize(QSize(32,32))
+        self.color_button.setFlat(True)
+        self.color_button.setStyleSheet("background: none; border: 0;")
+        
         self.color_button.clicked.connect(self.open_color_settings)
         self.update_safari_bookmarks = load_safari_bookmarks
         self.button_update_safari_bookmarks.clicked.connect(self.on_button_load_safari_bookmarks_updated)
@@ -187,7 +195,12 @@ class MainWindow(QMainWindow):
         
     def open_color_settings(self):
         dlg = ColorSettingsDialog(self)
+        dlg.colors_changed.connect(self.on_colors_changed)
         dlg.exec()
+
+    def on_colors_changed(self, colors: dict):
+        """Refresh table colors after the dialog saves."""
+        self.table.update_colors(colors)
 
 def main():
     app = QApplication(sys.argv)

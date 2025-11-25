@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+    width="40"
+    height="40"
+    viewBox="0 0 40 40"
+    xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Hintergrund -->
+  <rect
+    x="0"
+    y="0"
+    width="40"
+    height="40"
+    rx="5"
+    ry="5"
+    fill="#1e1e1e"
+    stroke="#444444"
+    stroke-width="1.5" />
+
+  <!-- Farbpunkte symmetrisch -->
+  <circle cx="12" cy="12" r="5" fill="#ff6b6b" />
+  <circle cx="28" cy="12" r="5" fill="#4ecdc4" />
+  <circle cx="12" cy="28" r="5" fill="#ffe66d" />
+  <circle cx="28" cy="28" r="5" fill="#5c7cfa" />
+
+  <!-- Regler -->
+  <line
+    x1="10"
+    y1="20"
+    x2="30"
+    y2="20"
+    stroke="#bbbbbb"
+    stroke-width="2"
+    stroke-linecap="round"
+    opacity="0.8" />
+</svg>

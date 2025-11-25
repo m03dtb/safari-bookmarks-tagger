@@ -2,12 +2,14 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QColorDialog, QLabel, QLineEdit
 )
 from PySide6.QtGui import QColor
-
+from PySide6.QtCore import Signal
 
 from helper_functions import load_config, save_config
 
 
 class ColorSettingsDialog(QDialog):
+    colors_changed = Signal(dict)
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Choose layout colors")
@@ -50,4 +52,5 @@ class ColorSettingsDialog(QDialog):
         # zurück in config schreiben und speichern
         self.config["colors"] = self.colors
         save_config(self.config)
+        self.colors_changed.emit(self.colors)
         self.accept()

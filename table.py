@@ -196,6 +196,16 @@ class Table():
 
         subprocess.run(["osascript", "-e", script])
 
+    def update_colors(self, colors: dict) -> None:
+        """Update displayed colors and repaint rows."""
+        if not colors:
+            return
+        self.colors = colors
+        self.col_name = colors.get("col_name", self.col_name)
+        self.col_url = colors.get("col_url", self.col_url)
+        self.col_tags = colors.get("col_tags", self.col_tags)
+        self.reload(self.mydict)
+
     def reload(self, mydict):
         self.mydict = mydict
         table = self.table
@@ -230,5 +240,4 @@ class Table():
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         table.resizeRowsToContents()
-
 
