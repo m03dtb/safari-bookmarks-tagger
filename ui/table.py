@@ -5,14 +5,14 @@ from PySide6.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView
 from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QItemSelectionModel
 
 from helper_functions import load_config
-import colors 
+import ui.colors 
 
 class Table():
     def __init__(self, mydict, extended_search_line_url, extended_search_line_name) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
-        self.colors = colors
+        self.colors = ui.colors
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.extended_search_line_url = extended_search_line_url
@@ -189,6 +189,8 @@ class Table():
                     repeat with u in theURLs
                         make new tab with properties {{URL:u}}
                     end repeat
+
+                    set index to 1 -- make window frontmost window
             end tell
             activate
         end tell

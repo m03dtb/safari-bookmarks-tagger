@@ -7,13 +7,12 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtSvgWidgets import QSvgWidget
 
-import bookmark_status
-from line_edit import LineEdit
-from table import *
-from tags_window import *
-from constants import *
-from colors import *
-from bookmark_status import BookmarkStatus, LightIcons
+from ui.line_edit import LineEdit
+from ui.table import *
+from ui.tags_window import *
+from services.settings import *
+from ui.colors import *
+from services.bookmark_status import BookmarkStatus, LightIcons
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:

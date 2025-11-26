@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 from dataclasses import dataclass
 
-from constants import TAGS_JSON, BOOKMARKS_PLIST
+from services.settings import TAGS_JSON, BOOKMARKS_PLIST
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
 
