@@ -147,7 +147,6 @@ class MainWindow(QMainWindow):
         self.button_layout2.addWidget(self.color_button)
         self.button_layout2.addWidget(self.button_lights)
 
-
         # LAYOUT 
         upper_layout = QHBoxLayout()
         upper_layout2= QHBoxLayout()
@@ -269,7 +268,7 @@ class MainWindow(QMainWindow):
             self.button_lights.setIcon(self.icons.lights_on)
             self.button_lights.setToolTip("Lights: window mode (click for menubar)")
         else:
-            # menubar-only mode -> show tray icon and keep button as toggle indicator
+            # menubar mode -> show tray icon and keep button as toggle indicator
             self.tray_icon.show()
             self.button_lights.setIcon(self.icons.lights_on)
             self.button_lights.setToolTip("Lights: menubar only (click to turn off)")
@@ -319,7 +318,6 @@ class MainWindow(QMainWindow):
             self.activateWindow()
         else:
             self.showMinimized()
-
 
 def main():
     app = QApplication(sys.argv)

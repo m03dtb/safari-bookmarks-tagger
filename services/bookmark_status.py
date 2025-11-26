@@ -93,43 +93,13 @@ class BookmarkStatus(QObject):
         """Check if given URL is stored in Safari bookmarks plist."""
         plist_path = Path.home() / "Library" / "Safari" / "Bookmarks.plist"
 
-        def normalize_variants(u: str) -> set[str]:
-            """Return decoded/raw variants, with/without query, to tolerate encoding noise."""
-            variants: set[str] = set()
-            if not u:
-                return variants
-
-            parsed = urlparse(u if "://" in u else "https://" + u)
-            host = parsed.netloc.lower()
-            if host.startswith("www."):
-                host = host[4:]
-            scheme = parsed.scheme or "https"
-            fragment = ""  # ignore fragments for matching
-
-            # decoded variant (handles % encodings + Unicode NFC)
-            path_dec = uni_normalize("NFC", unquote(parsed.path)).rstrip("/")
-            query_dec = uni_normalize("NFC", unquote(parsed.query))
-            query_dec_str = f"?{query_dec}" if query_dec else ""
-            variants.add(f"{scheme}://{host}{path_dec}{query_dec_str}{fragment}")
-            variants.add(f"{scheme}://{host}{path_dec}")
-            # re-encoded variant to cover input with umlauts vs stored percent-encoding
-            path_dec_enc = quote(path_dec, safe="/")
-            query_dec_enc = quote(query_dec, safe="=&?")
-            query_dec_enc_str = f"?{query_dec_enc}" if query_dec_enc else ""
-            variants.add(f"{scheme}://{host}{path_dec_enc}{query_dec_enc_str}{fragment}")
-            variants.add(f"{scheme}://{host}{path_dec_enc}")
-
-            # raw variant (in case stored value stays percent-encoded)
-            path_raw = uni_normalize("NFC", parsed.path).rstrip("/")
-            query_raw = uni_normalize("NFC", parsed.query)
-            query_raw_str = f"?{query_raw}" if query_raw else ""
-            variants.add(f"{scheme}://{host}{path_raw}{query_raw_str}{fragment}")
-            variants.add(f"{scheme}://{host}{path_raw}")
-            return variants
-
         def host_only(u: str) -> str:
             parsed = urlparse(u if "://" in u else "https://" + u)
             host = parsed.netloc.lower()
+            if "@" in host:
+                host = host.split("@", 1)[-1]
+            if ":" in host:
+                host = host.split(":", 1)[0]
             if host.startswith("www."):
                 host = host[4:]
             return host
@@ -140,13 +110,23 @@ class BookmarkStatus(QObject):
                 return ".".join(parts[-2:])
             return host
 
+        def normalize_parts(u: str) -> tuple[str, str, str, str]:
+            """Return (host, base, path, query) with decoding and NFC."""
+            parsed = urlparse(u if "://" in u else "https://" + u)
+            host = host_only(u)
+            base = base_domain(host)
+            path = uni_normalize("NFC", unquote(parsed.path)).rstrip("/")
+            query = uni_normalize("NFC", unquote(parsed.query))
+            return host, base, path, query
+
         target_host = host_only(url)
         target_base = base_domain(target_host)
-        target_variants = normalize_variants(url)
-        debug = bool(os.getenv("BOOKMARK_DEBUG"))
+        _, _, target_path, target_query = normalize_parts(url)
 
+        # collect all bookmark URL variants and base domains
+        bookmark_bases: set[str] = set()
+        bookmark_hosts: set[str] = set()
         full_match = False
-        domain_match = False
         try:
             with plist_path.open("rb") as fp:
                 data = plistlib.load(fp)
@@ -158,31 +138,36 @@ class BookmarkStatus(QObject):
                     stack.extend(node.values())
                 elif isinstance(node, list):
                     stack.extend(node)
-                elif isinstance(node, str):
-                    continue
                 else:
                     continue
 
                 if isinstance(node, dict) and "URLString" in node:
                     candidate_url = node.get("URLString", "")
-                    cand_variants = normalize_variants(candidate_url)
-                    if target_variants & cand_variants:
+                    cand_host, cand_base, cand_path, cand_query = normalize_parts(candidate_url)
+                    if cand_host:
+                        bookmark_hosts.add(cand_host)
+                    if cand_base:
+                        bookmark_bases.add(cand_base)
+                    # full-match detection: same host and same path+query
+                    if (
+                        cand_host
+                        and cand_host == target_host
+                        and cand_path == target_path
+                        and cand_query == target_query
+                    ):
                         full_match = True
                         break
-                    if not full_match and target_base:
-                        cand_host = host_only(candidate_url)
-                        if base_domain(cand_host) == target_base:
-                            domain_match = True
-                    if debug:
-                        print(
-                            "[bookmark debug] no match yet",
-                            {"current": url, "candidate": candidate_url, "cand_variants": list(cand_variants)},
-                        )
         except Exception:
+            bookmark_bases = set()
+            bookmark_hosts = set()
             full_match = False
-            domain_match = False
 
-        # cache state 
+        domain_match = bool(
+            (target_host and target_host in bookmark_hosts)
+            or (target_base and target_base in bookmark_bases)
+        )
+
+        # cache state: prefer full over domain
         if full_match:
             self.last_url_state = "full"
         elif domain_match:
@@ -190,11 +175,6 @@ class BookmarkStatus(QObject):
         else:
             self.last_url_state = "none"
 
-        if debug:
-            print(
-                "[bookmark debug] result",
-                {"target_variants": list(target_variants), "full_match": full_match, "domain_match": domain_match},
-            )
 
         # NOTIFY MainWindow so it can update the icon 
         self.bookmark_checked.emit(self.last_url_state)
