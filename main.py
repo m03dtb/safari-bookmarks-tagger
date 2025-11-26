@@ -90,20 +90,20 @@ class MainWindow(QMainWindow):
 
         self.extended_search_button = QPushButton("▶ Details")
         self.extended_search_button.clicked.connect(self.on_button_details_clicked)
-        self.extended_search_line = QLineEdit()
-        self.extended_search_line.setPlaceholderText("substring of urls")
-        self.extended_search_line.hide()
+        self.extended_search_line_url = QLineEdit()
+        self.extended_search_line_url.setPlaceholderText("substring of urls")
+        self.extended_search_line_url.hide()
 
         self.extended_search_line_name = QLineEdit()
         self.extended_search_line_name.setPlaceholderText("substring of name")
         self.extended_search_line_name.hide()
         # self.set_of_tags = None 
 
-        self.table = Table(self.mydict, self.extended_search_line, self.extended_search_line_name)
+        self.table = Table(self.mydict, self.extended_search_line_url, self.extended_search_line_name)
 
         self.line = LineEdit(self.table, self.dropdown)
         self.line.setPlaceholderText("[s]")
-        self.extended_search_line.textChanged.connect(
+        self.extended_search_line_url.textChanged.connect(
             lambda _: self.table.filter_table(self.line.text())
         )
         self.extended_search_line_name.textChanged.connect(
@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
         middle_layout.addWidget(self.table.table)
         bottom_layout.addLayout(self.line_layout)
         bottom_layout.addWidget(self.dropdown)
-        bottom_layout.addWidget(self.extended_search_line)
+        bottom_layout.addWidget(self.extended_search_line_url)
         bottom_layout.addWidget(self.extended_search_line_name)
 
         main_layout.addLayout(upper_layout)
@@ -197,12 +197,12 @@ class MainWindow(QMainWindow):
             self.line.setFocus()
 
     def on_button_details_clicked(self):
-        if self.extended_search_line.isVisible():
-            self.extended_search_line.hide()
+        if self.extended_search_line_url.isVisible():
+            self.extended_search_line_url.hide()
             self.extended_search_line_name.hide()
             self.extended_search_button.setText("▶Details")
         else:
-            self.extended_search_line.show()
+            self.extended_search_line_url.show()
             self.extended_search_line_name.show()
             self.extended_search_button.setText("▼Details")
 

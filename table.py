@@ -8,14 +8,14 @@ from helper_functions import load_config
 import colors 
 
 class Table():
-    def __init__(self, mydict, extended_search_line, extended_search_line_name) -> None:
+    def __init__(self, mydict, extended_search_line_url, extended_search_line_name) -> None:
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
         self.colors = colors
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.extended_search_line = extended_search_line
+        self.extended_search_line_url = extended_search_line_url
         self.extended_search_line_name = extended_search_line_name
 
         config = load_config()
@@ -109,8 +109,8 @@ class Table():
         ]
 
         url_substring = ""
-        if self.extended_search_line is not None:
-            url_substring = (self.extended_search_line.text() or "").strip().lower()
+        if self.extended_search_line_url is not None:
+            url_substring = (self.extended_search_line_url.text() or "").strip().lower()
         
         name_substring = ""
         if self.extended_search_line_name is not None:
