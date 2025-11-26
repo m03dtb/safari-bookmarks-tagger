@@ -1,4 +1,6 @@
 import subprocess
+from urllib.parse import unquote, quote
+from unicodedata import normalize as uni_normalize
 
 from PySide6.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
         QHeaderView, QLabel)
@@ -111,6 +113,8 @@ class Table():
         url_substring = ""
         if self.extended_search_line_url is not None:
             url_substring = (self.extended_search_line_url.text() or "").strip().lower()
+        url_substring_dec = uni_normalize("NFC", unquote(url_substring))
+        url_substring_enc = quote(url_substring_dec, safe=":/?#[]@!$&'()*+,;=%")
         
         name_substring = ""
         if self.extended_search_line_name is not None:
@@ -131,7 +135,15 @@ class Table():
 
                 url_item = table.item(row, 1)
                 url_text = url_item.text().lower() if url_item else ""
-                url_match = (not url_substring) or (url_substring in url_text)
+                url_text_dec = uni_normalize("NFC", unquote(url_text))
+                url_match = (
+                    not url_substring
+                    or url_substring in url_text
+                    or url_substring_dec in url_text
+                    or url_substring in url_text_dec
+                    or url_substring_dec in url_text_dec
+                    or url_substring_enc in url_text
+                )
 
 
                 name_item = table.item(row, 3)
@@ -242,4 +254,3 @@ class Table():
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         table.resizeRowsToContents()
-

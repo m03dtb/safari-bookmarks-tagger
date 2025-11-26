@@ -3,7 +3,7 @@ from PySide6.QtGui import QKeySequence, QShortcut, QIcon
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QWidget, QMainWindow, QPushButton,
-    QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget
+    QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget, QSystemTrayIcon
 )
 from PySide6.QtSvgWidgets import QSvgWidget
 
@@ -64,7 +64,8 @@ class MainWindow(QMainWindow):
         # lights + bookmark status
         self.icons = LightIcons()
         self.bookmark_status = BookmarkStatus(self)
-        self.lights_enabled = False
+        # cycle through off -> window -> menubar
+        self.lights_mode = "off"
 
         # button_lights setup
         self.button_lights.setIcon(self.icons.lights_off)
@@ -75,6 +76,10 @@ class MainWindow(QMainWindow):
         self.button_lights.clicked.connect(self.on_button_lights_clicked)
         # connect bookmark status -> icon update
         self.bookmark_status.bookmark_checked.connect(self.update_light_icon)
+        # NSStatusBar/QSystemTrayIcon indicator (menu bar)
+        self.tray_icon = QSystemTrayIcon(self.icons.lights_off, self)
+        self.tray_icon.setToolTip("Safari bookmark status")
+        self.tray_icon.activated.connect(self.on_tray_icon_activated)
             
         self.dropdown = QListWidget()
         self.dropdown.hide()
@@ -231,10 +236,8 @@ class MainWindow(QMainWindow):
     def auto_resize(self, event):
         """Reorder elements vertically if small width"""
         if self.width() < 400:
-            # self.button_layout2.setDirection(QBoxLayout.TopToBottom)
             self.line_layout.setDirection(QBoxLayout.TopToBottom)
         else:
-            # self.button_layout2.setDirection(QBoxLayout.LeftToRight)
             self.line_layout.setDirection(QBoxLayout.LeftToRight)
         
     def open_color_settings(self):
@@ -247,32 +250,75 @@ class MainWindow(QMainWindow):
         self.table.update_colors(colors)
 
     def on_button_lights_clicked(self):
-        # toggle monitoring mode on/off
-        self.lights_enabled = not self.lights_enabled
+        # cycle: off -> window -> menubar -> off
+        mode_order = {"off": "window", "window": "menubar", "menubar": "off"}
+        self.lights_mode = mode_order.get(self.lights_mode, "off")
 
-        if not self.lights_enabled:
+        if self.lights_mode == "off":
             self.bookmark_status.stop()
             self.button_lights.setIcon(self.icons.lights_off)
+            self.tray_icon.hide()
             return
 
         # lights on: start monitoring and perform immediate check
-        self.button_lights.setIcon(self.icons.lights_on)
         self.bookmark_status.start()
         self.bookmark_status.check_frontmost_url_changed(force=True)
+        if self.lights_mode == "window":
+            self.tray_icon.hide()
+            # show last-known status directly in the button
+            self.button_lights.setIcon(self.icons.lights_on)
+            self.button_lights.setToolTip("Lights: window mode (click for menubar)")
+        else:
+            # menubar-only mode -> show tray icon and keep button as toggle indicator
+            self.tray_icon.show()
+            self.button_lights.setIcon(self.icons.lights_on)
+            self.button_lights.setToolTip("Lights: menubar only (click to turn off)")
 
     def update_light_icon(self, status: str | None) -> None:
         """Update the lights icon depending on bookmark existence."""
-        if not self.lights_enabled:
+        if self.lights_mode == "off":
             return
 
-        if status is None:
-            self.button_lights.setIcon(self.icons.lights_off)
-        elif status == "full":
-            self.button_lights.setIcon(self.icons.lights_green)
-        elif status == "domain":
-            self.button_lights.setIcon(self.icons.lights_yellow)
+        def icon_for(st: str | None):
+            if st is None:
+                return self.icons.lights_off
+            if st == "full":
+                return self.icons.lights_green
+            if st == "domain":
+                return self.icons.lights_yellow
+            return self.icons.lights_red
+
+        icon = icon_for(status)
+        tooltip_status = {
+            None: "no Safari window",
+            "full": "exact bookmark found",
+            "domain": "domain bookmarked",
+            "none": "no bookmark",
+        }.get(status, "no bookmark")
+
+        # always update the button while active so the GUI reflects state
+        self.button_lights.setIcon(icon)
+
+        if self.lights_mode == "window":
+            self.tray_icon.hide()
+        elif self.lights_mode == "menubar":
+            self.tray_icon.setIcon(icon)
+            self.tray_icon.setToolTip(f"Safari bookmark status: {tooltip_status}")
+            self.tray_icon.show()
+
+    def on_tray_icon_activated(self, reason):
+        """Toggle window visibility when clicking the menubar icon."""
+        if reason not in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            return
+        if self.isMinimized() or not self.isVisible():
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
         else:
-            self.button_lights.setIcon(self.icons.lights_red)
+            self.showMinimized()
 
 
 def main():
