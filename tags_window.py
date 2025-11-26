@@ -114,6 +114,9 @@ class TagsWindow(QWidget):
 
             for idx in indexes:
                 row = idx.row()
+                if self.table.isRowHidden(row):
+                    # skip filtered-out entries so we only tag what's visible/selected
+                    continue
                 # get url from hidden column 1 
                 url_item = self.table.item(row,1) # column 1 == urls 
                 if url_item is None:
@@ -195,6 +198,8 @@ class TagsWindow(QWidget):
 
         for idx in indexes:
             row = idx.row()
+            if self.table.isRowHidden(row):
+                continue
             url_item = self.table.item(row, 1)
             if url_item is None:
                 continue
