@@ -10,14 +10,17 @@ from PySide6.QtGui import QIcon
 from PySide6.QtCore import QObject, QTimer, Signal
 
 
+ICON_DIR = Path(__file__).resolve().parent.parent / "icons"
+
+
 class LightIcons:
     def __init__(self) -> None:
-        #lights 
-        self.lights_off = QIcon("./icons/lights_off.svg")
-        self.lights_on = QIcon("./icons/lights_on.svg")
-        self.lights_green = QIcon("./icons/lights_green.svg")
-        self.lights_yellow = QIcon("./icons/lights_yellow.svg")
-        self.lights_red = QIcon("./icons/lights_red.svg")
+        # lights
+        self.lights_off = QIcon(str(ICON_DIR / "lights_off.svg"))
+        self.lights_on = QIcon(str(ICON_DIR / "lights_on.svg"))
+        self.lights_green = QIcon(str(ICON_DIR / "lights_green.svg"))
+        self.lights_yellow = QIcon(str(ICON_DIR / "lights_yellow.svg"))
+        self.lights_red = QIcon(str(ICON_DIR / "lights_red.svg"))
 
 class BookmarkStatus(QObject):
     """Periodically check if Safari's frontmost URL has changed"""

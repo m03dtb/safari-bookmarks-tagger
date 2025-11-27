@@ -1,4 +1,5 @@
-import sys 
+import sys
+from pathlib import Path
 from PySide6.QtGui import QKeySequence, QShortcut, QIcon
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtWidgets import (
@@ -21,11 +22,12 @@ class MainWindow(QMainWindow):
 
         screen = QApplication.primaryScreen().geometry()
         _, height = screen.width(), screen.height()
-        self.icon_colors = QIcon("./icons/color_icon.svg")
-        self.icon_tags = QIcon("./icons/tag_icon.svg")
-        self.icon_reload = QIcon("./icons/reload_icon.svg")
-        self.icon_reload_green = QIcon("./icons/reload_icon_green.svg")
-        self.icon_clear = QIcon("./icons/clear_icon.svg")
+        icon_dir = Path(__file__).resolve().parent / "icons"
+        self.icon_colors = QIcon(str(icon_dir / "color_icon.svg"))
+        self.icon_tags = QIcon(str(icon_dir / "tag_icon.svg"))
+        self.icon_reload = QIcon(str(icon_dir / "reload_icon.svg"))
+        self.icon_reload_green = QIcon(str(icon_dir / "reload_icon_green.svg"))
+        self.icon_clear = QIcon(str(icon_dir / "clear_icon.svg"))
 
 
         self.setGeometry(0, 0, 700, height)
