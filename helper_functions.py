@@ -76,10 +76,16 @@ def build_table_dict() -> dict[str, dict[str, str]]:
     tag_map = load_tags()
 
     table_dict: dict[str, dict[str, str]] = {}
+    name_counter: dict[str, int] = {}
     for bm in bookmarks:
         tags = tag_map.get(bm.url, [])
         tags_str = ",".join(tags)
-        table_dict[bm.name] = {
+        base_name = bm.name or bm.url
+        count = name_counter.get(base_name, 0) + 1
+        name_counter[base_name] = count
+        unique_name = base_name if count == 1 else f"{base_name} ({count})"
+
+        table_dict[unique_name] = {
             "url": bm.url,
             "tags": tags_str,
         }
