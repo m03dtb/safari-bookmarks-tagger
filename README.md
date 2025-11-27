@@ -4,7 +4,7 @@ Desktop app (PySide6) for searching, tagging, and opening Safari bookmarks on ma
 
 ## Prerequisites
 - macOS with Safari (reads `~/Library/Safari/Bookmarks.plist`; macOS creates it after Safari is opened once)
-- Python 3.10+ (tested with 3.10/3.11)
+- Python 3.10+ (tested with 3.11.9, 3.12.6)
 
 ## Setup
 ```bash
@@ -22,3 +22,9 @@ python main.py
 - Icons and `tags.json` resolve relative to the project path, so starting from any CWD works.
 - If `Bookmarks.plist` is missing, the app shows a notice; open Safari once, then reload.
 - Hotkeys use the Meta/Cmd key (e.g., Cmd+S for search, Cmd+R to reload).
+
+## Tests
+Run the small pytest suite for helper logic and the Safari status wrapper:
+```bash
+python -m pytest
+```
