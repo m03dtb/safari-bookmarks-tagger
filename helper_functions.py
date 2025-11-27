@@ -24,8 +24,16 @@ class SafariBookmarks:
 
 def load_safari_bookmarks(plist_path: str | Path) -> list[SafariBookmarks]:
     plist_path = Path(plist_path)
-    with plist_path.open("rb") as f:
-        root = plistlib.load(f)
+    if not plist_path.exists():
+        # No Safari bookmarks yet (or Safari never opened) -> return empty set instead of crashing
+        return []
+
+    try:
+        with plist_path.open("rb") as f:
+            root = plistlib.load(f)
+    except Exception:
+        # Corrupt or unreadable plist: fail softly
+        return []
 
     bookmarks: list[SafariBookmarks] = []
 

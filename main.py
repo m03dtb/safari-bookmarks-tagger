@@ -3,7 +3,8 @@ from PySide6.QtGui import QKeySequence, QShortcut, QIcon
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QWidget, QMainWindow, QPushButton,
-    QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget, QSystemTrayIcon
+    QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget, QSystemTrayIcon,
+    QMessageBox
 )
 from PySide6.QtSvgWidgets import QSvgWidget
 
@@ -30,7 +31,12 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, 700, height)
         self.setWindowTitle("BookmarksTagger")
 
-        self.mydict = build_table_dict()
+        self._plist_missing_warned = False
+        if not BOOKMARKS_PLIST.exists():
+            self.warn_no_bookmarks_plist()
+            self.mydict = {}
+        else:
+            self.mydict = build_table_dict()
 
         self.button_update_safari_bookmarks = QPushButton()
         self.button_update_safari_bookmarks.setIcon(self.icon_reload)
@@ -216,6 +222,9 @@ class MainWindow(QMainWindow):
     def on_button_load_safari_bookmarks_updated(self):
         """get data from bookmarks plist and save them as dict"""
         btn = self.button_update_safari_bookmarks
+        if not BOOKMARKS_PLIST.exists():
+            self.warn_no_bookmarks_plist()
+            return
         self.mydict = build_table_dict()
         # fill existing table with the new data 
         self.table.reload(self.mydict)
@@ -318,6 +327,17 @@ class MainWindow(QMainWindow):
             self.activateWindow()
         else:
             self.showMinimized()
+
+    def warn_no_bookmarks_plist(self):
+        """Show a one-time notice when Safari has no bookmarks file yet."""
+        if self._plist_missing_warned:
+            return
+        self._plist_missing_warned = True
+        QMessageBox.information(
+            self,
+            "No Bookmarks plist found",
+            "No Bookmarks plist found. Open Safari once so macOS creates the file, then reload.",
+        )
 
 def main():
     app = QApplication(sys.argv)
