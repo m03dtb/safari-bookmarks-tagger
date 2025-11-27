@@ -296,6 +296,8 @@ class MainWindow(QMainWindow):
                 return self.icons.lights_green
             if st == "domain":
                 return self.icons.lights_yellow
+            if st == "error":
+                return self.icons.lights_off
             return self.icons.lights_red
 
         icon = icon_for(status)
@@ -304,6 +306,7 @@ class MainWindow(QMainWindow):
             "full": "exact bookmark found",
             "domain": "domain bookmarked",
             "none": "no bookmark",
+            "error": "could not read Safari URL",
         }.get(status, "no bookmark")
 
         # always update the button while active so the GUI reflects state

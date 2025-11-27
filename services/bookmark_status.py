@@ -64,11 +64,11 @@ class BookmarkStatus(QObject):
             text=True,
         )
 
-        # if AppleScript failed, fall back to "no window" handling
+        # if AppleScript failed, mark as error instead of "no bookmark"
         if result.returncode != 0:
             self.last_url_checked = None
-            self.last_url_state = "none"
-            self.bookmark_checked.emit("none")
+            self.last_url_state = "error"
+            self.bookmark_checked.emit("error")
             return
 
         current_url = result.stdout.strip()
