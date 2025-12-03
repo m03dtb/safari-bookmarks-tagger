@@ -2,8 +2,8 @@
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import (
-    QWidget, QLabel, QCheckBox, QLayout, QLineEdit, QVBoxLayout,  QHBoxLayout, QPushButton,
-    QTableWidgetItem, QTableWidget, QHeaderView, QMessageBox
+    QWidget, QLabel, QCheckBox, QLineEdit, QVBoxLayout,  QHBoxLayout, QPushButton,
+    QTableWidgetItem, QHeaderView, QMessageBox
 )
 
 from helper_functions import * 
@@ -46,11 +46,6 @@ class TagsWindow(QWidget):
         self.selection_layout = QHBoxLayout()
         self.selection_layout.addWidget(self.select_delete_label)
         self.selection_layout.addWidget(self.reverse_selected_button)
-
-        # indexes = table.selectionModel().selectedRows()
-        # print("Anzahl selektierter Zeilen:", len(indexes))
-        # for idx in sorted(indexes):
-        #     print(f"ROW: {idx}")
 
         layout = QVBoxLayout()
         layout.addWidget(self.tags_input_field)
@@ -95,7 +90,7 @@ class TagsWindow(QWidget):
 
 
     def add_tags(self):
-        # 1) Tags aus dem Eingabefeld holen (kommagetrennt)
+        # 1) get comma-separated tags from search bar entry field 
         raw_text = self.tags_input_field.text().strip()
         if not raw_text:
             return
@@ -103,10 +98,10 @@ class TagsWindow(QWidget):
         if not new_tags:
             return
 
-        # 2) bestehende Tags aus JSON laden
+        # 2) load existings tags from JSON 
         tag_map = load_tags()  # dict[url] -> list[str]
 
-        # 3) alle selektierten Zeilen durchgehen
+        # 3) iterate over seleceted rows
         indexes = self.table.selectionModel().selectedRows()
         if len(indexes) == 0:
             QMessageBox.information(self,"Info", "Select one or more entries you want to add tags to")
@@ -136,7 +131,7 @@ class TagsWindow(QWidget):
                 # update map
                 tag_map[url] = existing
 
-            # Tabelle und Labels mit den aktualisierten Tags synchronisieren
+            # sync table and labels with the updated tags
             self._apply_tag_map_to_selection(tag_map, indexes)
 
             save_tags(tag_map)
@@ -170,7 +165,7 @@ class TagsWindow(QWidget):
 
             url = url_item.text()
             existing = tag_map.get(url, [])
-            # alle Tags entfernen, die im Delete-Input stehen (case-insensitive)
+            # delete all tags in the delete-input (case case-insensitive)
             remaining = [t for t in existing if t.lower() not in tags_to_delete]
 
             if remaining:
@@ -178,7 +173,7 @@ class TagsWindow(QWidget):
             else:
                 tag_map.pop(url, None)
 
-        # Tabelle und Labels mit den aktualisierten Tags synchronisieren
+        # sync table and labels with the updated tags
         self._apply_tag_map_to_selection(tag_map, indexes)
 
         save_tags(tag_map)
@@ -188,8 +183,8 @@ class TagsWindow(QWidget):
         QTimer.singleShot(2000, self.status_label_1.clear)
 
     def _apply_tag_map_to_selection(self, tag_map, indexes):
-        """Gemeinsamer Code zum Aktualisieren der Tabelle und Labels
-        für alle selektierten Zeilen basierend auf dem übergebenen tag_map.
+        """
+        Update Table and Labels for all selected rows based on the passed tag_map. 
         """
         # refresh colors in case they were changed in the color dialog
         self.colors = load_config().get("colors", self.colors)

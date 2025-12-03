@@ -4,7 +4,7 @@ from unicodedata import normalize as uni_normalize
 
 from PySide6.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
         QHeaderView, QLabel)
-from PySide6.QtCore import QSize, Qt, QAbstractTableModel, QItemSelectionModel
+from PySide6.QtCore import Qt, QItemSelectionModel
 
 from helper_functions import load_config
 import ui.colors 
@@ -28,30 +28,33 @@ class Table():
         self.col_url  = self.colors.get("col_url")
         self.col_tags = self.colors.get("col_tags")
 
-        # Grundmenge aller EINZELNEN Tags aus dem Dict aufbauen
+        # create set from all tags from the dict 
         all_tags = set()
         for value in self.mydict.values():
             for tag in value["tags"].split(","):
                 tag = tag.strip()
                 if tag:
                     all_tags.add(tag)
-        # unveränderliche Basis-Menge und aktuell verfügbare Tags
+        # set of all existing tags to all bookmarks 
         self.all_tags_full = set(all_tags)
+        # set of all available tags (filtered)
         self.set_of_tags = set(all_tags)
 
-        # CREATE TABLE with the columns "name" and "tags"
+        # CREATE TABLE
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
         header_labels = ["Bookmarks", "URL", "Tags", "Name"]
         table.setColumnCount(len(header_labels))
         table.setHorizontalHeaderLabels(header_labels)
 
+        # Hide all columns except the first one
         table.setColumnHidden(1, True)
         table.setColumnHidden(2, True)
         table.setColumnHidden(3, True)
 
         table.verticalHeader().hide() # hide row numbers
 
+        # Create a set of all available tags
         all_tags = set()
         for value in self.mydict.values():
             for tag in value["tags"].split(","):
@@ -59,6 +62,9 @@ class Table():
                 if tag:
                     all_tags.add(tag)
 
+        # name of bookmark, data containing url and tags
+        # example of how the mydict dict looks like: 
+        # {name : {"url": "...", "tags": "tag1,tag2"} }
         for row, (name, data) in enumerate(mydict.items()):
             url = data["url"]
             tags_str = data["tags"]
@@ -71,21 +77,28 @@ class Table():
                 "</body></html>"
             )
 
+            # instead of columns, use label in HTML-format to display 
             label = QLabel()
             label.setText(display_text)
-            label.setTextFormat(Qt.TextFormat.RichText)   # wichtig für HTML
+            label.setTextFormat(Qt.TextFormat.RichText)
             label.setWordWrap(True)
             label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-            # HTML in Spalte 0 anzeigen
+            # show the Name/URL/Tags Combo as one label per bookmark entry
             table.setCellWidget(row, 0, label)
 
+            # hide the columns containing url/tags_str/name for each 
+            # bookmark entry in the table
+            # these infos are still needed for live filtering the table elements
             table.setItem(row, 1, QTableWidgetItem(url))
             table.setItem(row, 2, QTableWidgetItem(tags_str))
             table.setItem(row, 3, QTableWidgetItem(name))
 
+        # adjust row's height according to the needed space for each entry (with Name,URL,Tags)
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # stretch row 0 as it is the only row visible
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        # forces height calculation after filling the table 
         table.resizeRowsToContents()
 
 
@@ -95,12 +108,14 @@ class Table():
         return sorted(self.set_of_tags)
 
     def filter_table(self, filter_text: str, used_tags=None):
-        """Zeilen der Tabelle anhand eines einfachen Textfilters ein-/ausblenden.
-            filter_text: str -> comma separated tags
+        """Filter: hide/show rows of table using a simple text filter.
+        filter_text: str -> comma separated tags
         """
         table = self.table
         table.setUpdatesEnabled(False)
         filter_text = (filter_text or "").strip().lower()
+
+        # create empty set if no tags are used as filters yet
         used_tags = used_tags or set()
         
         # create filter_tags list (deleting spaces and empty strings)
@@ -110,63 +125,98 @@ class Table():
             if tag.strip()
         ]
 
+        # URL SUBSTRING in extended_search_line_url
         url_substring = ""
+        # if the user pasted a URL into the extended_search_line_url TextEdit field ...
         if self.extended_search_line_url is not None:
+            # strip the URL string and make it lowercase
             url_substring = (self.extended_search_line_url.text() or "").strip().lower()
+        # normalize the String: e.g. "%C3%B6" becomes German "ö" 
         url_substring_dec = uni_normalize("NFC", unquote(url_substring))
+        # normalize the unicode variant into NFC-Form -> 
+        # e.g. "ö" and "o"+ Combining Umlaut are treated the same 
         url_substring_enc = quote(url_substring_dec, safe=":/?#[]@!$&'()*+,;=%")
         
+        # NAME SUBSTRING in extended_search_line_name
         name_substring = ""
+        # if the user pasted a Name substring to extended_search_line_name ...
         if self.extended_search_line_name is not None:
             name_substring = (self.extended_search_line_name.text() or "").strip().lower()
+
 
         visible_tags = set()
 
         try: 
             for row in range(table.rowCount()):
-                item = table.item(row, 2)  # Spalte 1 = Tags-Spalte
+                item = table.item(row, 2)  # column: tags
+
+                # -- TAGS --
+                # make tags lowercase
                 tags = item.text().lower() if item else ""
+                # reformat the comma-separated tags and create list with these
                 row_tags = [
                     tag.strip()
                     for tag in tags.split(",")
                     if tag.strip()
                 ]
-                tag_match = all(ftag in row_tags for ftag in filter_tags)
 
+                # True only if EVERY filter tag exists in the row's tags
+                tag_match:bool = all(ftag in row_tags for ftag in filter_tags)
+
+                # -- URL --
                 url_item = table.item(row, 1)
+                # lowercase and normalize url
                 url_text = url_item.text().lower() if url_item else ""
                 url_text_dec = uni_normalize("NFC", unquote(url_text))
-                url_match = (
-                    not url_substring
-                    or url_substring in url_text
-                    or url_substring_dec in url_text
-                    or url_substring in url_text_dec
-                    or url_substring_dec in url_text_dec
-                    or url_substring_enc in url_text
-                )
 
+                # url_match if url_substring empty
+                if not url_substring:
+                    url_match:bool = True 
+                else:
+                    # url match if any url_text variant in any url_substring variant
+                    url_match:bool = (
+                        # TODO: minimize variants
+                        url_substring in url_text
+                        or url_substring_dec in url_text
+                        or url_substring in url_text_dec
+                        or url_substring_dec in url_text_dec
+                        or url_substring_enc in url_text
+                    )
 
+                # -- NAME --
                 name_item = table.item(row, 3)
                 name_text = name_item.text().lower() if name_item else ""
-                name_match = (not name_substring) or (name_substring in name_text)
+                # name_match if name_substring empty or substring of name_text 
+                # -> allows only one single consecutive substring of name_text
+                name_match:bool = (not name_substring) or (name_substring in name_text)
 
-                match = tag_match and url_match and name_match
+                # MATCH if ALL SUBCATEGORIES (tags, url, name) are True (empty possible)
+                match:bool = tag_match and url_match and name_match
                 table.setRowHidden(row, not match)
 
-                if not match:
-                    # Deselect rows that got hidden so stale selections do not bleed into tag actions
+                if not match: # if a row is no match 
+                    # get the model-index of the row (for col 0)
                     index = table.model().index(row, 0)
+                    # deselect the rows that have no match
                     table.selectionModel().select(
-                        index, QItemSelectionModel.SelectionFlag.Deselect | QItemSelectionModel.SelectionFlag.Rows
+                        index, # selection
+                        # command of class SelectionFlag
+                        # deselect ... 
+                        QItemSelectionModel.SelectionFlag.Deselect |
+                        # ... the entire row for the given index
+                        QItemSelectionModel.SelectionFlag.Rows
                     )
 
                 if match:
+                    # add the row_tags to the set of visible_tags
                     visible_tags.update(row_tags)
 
         finally:
+            # re-renders the table
             table.setUpdatesEnabled(True)
-        # available tags, i.e. tags of visible table rows minus those selected via dropdown
-        self.set_of_tags = visible_tags - used_tags
+        # available tags, i.e. tags-set of visible table rows 
+        # minus tags selected via dropdown (set)
+        self.set_of_tags: set = visible_tags - used_tags
                 
     def open_selected_boomarks_urls(self):
         """desc: opens each selected entry in a separate new Safari tab"""
