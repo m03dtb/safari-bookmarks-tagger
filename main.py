@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from PySide6.QtGui import QKeySequence, QShortcut, QIcon
-from PySide6.QtCore import Qt, QTimer, QSize
+from PySide6.QtCore import Qt, QTimer, QSize, QItemSelectionModel
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget, QSystemTrayIcon,
@@ -15,6 +15,7 @@ from ui.tags_window import *
 from services.settings import *
 from ui.colors import *
 from services.bookmark_status import BookmarkStatus, LightIcons
+from services.bookmark_watcher import BookmarkWatcher
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -39,6 +40,9 @@ class MainWindow(QMainWindow):
             self.mydict = {}
         else:
             self.mydict = build_table_dict()
+
+        self.bookmark_watcher = BookmarkWatcher(str(BOOKMARKS_PLIST))
+        self.bookmark_watcher.bookmark_added.connect(self.on_new_bookmark)
 
         self.button_update_safari_bookmarks = QPushButton()
         self.button_update_safari_bookmarks.setIcon(self.icon_reload)
@@ -343,6 +347,45 @@ class MainWindow(QMainWindow):
             "No Bookmarks plist found",
             "No Bookmarks plist found. Open Safari once so macOS creates the file, then reload.",
         )
+
+    def select_bookmark_by_url(self, url: str) -> bool:
+        """Select the row that matches the given URL, if present."""
+        table = self.table.table
+        model = table.model()
+        table.clearSelection()
+        for row in range(table.rowCount()):
+            item = table.item(row, 1)  # hidden URL column
+            if item and item.text() == url:
+                table.setRowHidden(row, False)
+                idx = model.index(row, 0)
+                table.selectionModel().select(
+                    idx,
+                    QItemSelectionModel.SelectionFlag.ClearAndSelect
+                    | QItemSelectionModel.SelectionFlag.Rows,
+                )
+                table.scrollTo(idx)
+                return True
+        return False
+
+    def on_new_bookmark(self, item_dict):
+        url = item_dict.get("URLString")
+        if not url:
+            return
+
+        # refresh table so the new bookmark is visible/selectable
+        self.on_button_load_safari_bookmarks_updated()
+
+        # select the new bookmark row (if present) and open the tag window
+        self.select_bookmark_by_url(url)
+
+        if not hasattr(self, "tags_window"):
+            self.tags_window = TagsWindow(self.table.table, self.height())
+
+        self.tags_window.populate_tag_checkboxes()
+        self.tags_window.show()
+        self.tags_window.raise_()
+        self.tags_window.activateWindow()
+        self.tags_window.tags_input_field.setFocus()
 
 def main():
     app = QApplication(sys.argv)
