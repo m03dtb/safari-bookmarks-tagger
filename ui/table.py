@@ -200,10 +200,9 @@ class Table():
                     # deselect the rows that have no match
                     table.selectionModel().select(
                         index, # selection
-                        # command of class SelectionFlag
-                        # deselect ... 
+                        # SelectionFlag: deselect
                         QItemSelectionModel.SelectionFlag.Deselect |
-                        # ... the entire row for the given index
+                        # the entire row for the given index
                         QItemSelectionModel.SelectionFlag.Rows
                     )
 
@@ -239,22 +238,28 @@ class Table():
         url_list = ",".join(f'"{u}"' for u in list_of_urls_to_open)
 
         # Apple Script to open each selected bookmark entry 
-        # in a separate new tab
-        script = f'''
-        set theURLs to {{{url_list}}}
+        # in a separate new tab and put window to the front
+        script = f'''set theURLs to {{{url_list}}}
 
         tell application "Safari"
             if not (exists document 1) then
                 make new document
             end if
             tell window 1
-                    repeat with u in theURLs
-                        make new tab with properties {{URL:u}}
-                    end repeat
-
-                    set index to 1 -- make window frontmost window
-            end tell
+                repeat with u in theURLs
+                    make new tab with properties {{URL:u}}
+                end repeat
+            end tell 
             activate
+        end tell 
+
+        delay 0.1
+
+        tell application "System Events"
+            tell process "Safari"
+                set frontmost to true 
+                perform action "AXRaise" of window 1
+            end tell
         end tell
         '''
 
