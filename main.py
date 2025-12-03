@@ -276,16 +276,14 @@ class MainWindow(QMainWindow):
 
         # lights on: start monitoring and perform immediate check
         self.bookmark_status.start()
+        # immediately reflect the last known state in both button and tray
+        self.update_light_icon(self.bookmark_status.last_url_state)
+
         self.bookmark_status.check_frontmost_url_changed(force=True)
         if self.lights_mode == "window":
-            self.tray_icon.hide()
-            # show last-known status directly in the button
-            self.button_lights.setIcon(self.icons.lights_on)
             self.button_lights.setToolTip("Lights: window mode (click for menubar)")
         else:
             # menubar mode -> show tray icon and keep button as toggle indicator
-            self.tray_icon.show()
-            self.button_lights.setIcon(self.icons.lights_on)
             self.button_lights.setToolTip("Lights: menubar only (click to turn off)")
 
     def update_light_icon(self, status: str | None) -> None:
