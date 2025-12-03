@@ -62,6 +62,11 @@ class Table():
                 if tag:
                     all_tags.add(tag)
 
+        self.fill_table(mydict)
+
+
+    def fill_table(self, mydict):
+        table = self.table
         # name of bookmark, data containing url and tags
         # example of how the mydict dict looks like: 
         # {name : {"url": "...", "tags": "tag1,tag2"} }
@@ -100,7 +105,6 @@ class Table():
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         # forces height calculation after filling the table 
         table.resizeRowsToContents()
-
 
     # other functions
     def get_all_tags(self) -> list[str]:
@@ -281,31 +285,4 @@ class Table():
         table.clearContents()
         table.setRowCount(len(mydict.keys()))
 
-        for row, (name, data) in enumerate(mydict.items()):
-            url = data["url"]
-            tags_str = data["tags"]
-
-            display_text = (
-                "<html><body>"
-                f'<span style="font-weight:bold; color:{self.col_name};">{name}</span><br>'
-                f'<span style="color:{self.col_url};">{url}</span><br>'
-                f'<span style="color:{self.col_tags};">{tags_str}</span>'
-                "</body></html>"
-            )
-
-            label = QLabel()
-            label.setText(display_text)
-            label.setTextFormat(Qt.TextFormat.RichText)   # wichtig für HTML
-            label.setWordWrap(True)
-            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-            # HTML in Spalte 0 anzeigen
-            table.setCellWidget(row, 0, label)
-
-            table.setItem(row, 1, QTableWidgetItem(url))
-            table.setItem(row, 2, QTableWidgetItem(tags_str))
-            table.setItem(row, 3, QTableWidgetItem(name))
-
-        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        table.resizeRowsToContents()
+        self.fill_table(mydict)
