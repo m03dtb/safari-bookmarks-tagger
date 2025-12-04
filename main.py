@@ -1,5 +1,8 @@
+# Standard library
 import sys
 from pathlib import Path
+
+# Third-party 
 from PySide6.QtGui import QKeySequence, QShortcut, QIcon
 from PySide6.QtCore import Qt, QTimer, QSize, QItemSelectionModel, QEvent
 from PySide6.QtWidgets import (
@@ -7,15 +10,16 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget, QSystemTrayIcon,
     QMessageBox
 )
-from PySide6.QtSvgWidgets import QSvgWidget
-
+# Local application modules
+from helper_functions import *
+from ui.colors import ColorSettingsDialog
+from ui.table import Table
+from ui.tags_window import TagsWindow 
 from ui.line_edit import LineEdit
-from ui.table import *
-from ui.tags_window import *
-from services.settings import *
-from ui.colors import *
 from services.bookmark_status import BookmarkStatus, LightIcons
 from services.bookmark_watcher import BookmarkWatcher
+from services.settings import *
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -29,7 +33,6 @@ class MainWindow(QMainWindow):
         self.icon_reload = QIcon(str(icon_dir / "reload_icon.svg"))
         self.icon_reload_green = QIcon(str(icon_dir / "reload_icon_green.svg"))
         self.icon_clear = QIcon(str(icon_dir / "clear_icon.svg"))
-
 
         self.setGeometry(0, 0, 400, height)
         self.setWindowTitle("BookmarksTagger")
@@ -97,7 +100,6 @@ class MainWindow(QMainWindow):
             
         self.dropdown = QListWidget()
         self.dropdown.hide()
-        
 
         self.line_delete_button = QPushButton()
         self.line_delete_button.setIcon(self.icon_clear)
@@ -115,7 +117,6 @@ class MainWindow(QMainWindow):
         self.extended_search_line_name = QLineEdit()
         self.extended_search_line_name.setPlaceholderText("substring of name")
         self.extended_search_line_name.hide()
-        # self.set_of_tags = None 
 
         self.table = Table(self.mydict, self.extended_search_line_url, self.extended_search_line_name)
         self.table.table.installEventFilter(self)
