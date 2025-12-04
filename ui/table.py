@@ -220,7 +220,7 @@ class Table():
         # minus set of tags selected via dropdown
         self.set_of_tags = visible_tags - used_tags
                 
-    def open_selected_boomarks_urls(self):
+    def open_selected_bookmark_urls(self):
         """desc: opens each selected entry in a separate new Safari tab"""
         indexes = self.table.selectionModel().selectedRows()
 

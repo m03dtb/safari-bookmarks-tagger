@@ -147,10 +147,10 @@ class MainWindow(QMainWindow):
         self.line_shortcut = QShortcut(QKeySequence("Meta+S"), self)
         self.line_shortcut.activated.connect(self.go_to_search_bar)
 
-        self.open_selected_boomarks_urls = self.table.open_selected_boomarks_urls
-        self.shortcut_open_selecte_bookmarks_url = QShortcut(QKeySequence("Meta+X"), self)
-        self.shortcut_open_selecte_bookmarks_url.setContext(Qt.ShortcutContext.ApplicationShortcut)
-        self.shortcut_open_selecte_bookmarks_url.activated.connect(self.open_selected_boomarks_urls)
+        self.open_selected_bookmark_urls = self.table.open_selected_bookmark_urls
+        self.shortcut_open_selected_bookmark_urls = QShortcut(QKeySequence("Meta+X"), self)
+        self.shortcut_open_selected_bookmark_urls.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self.shortcut_open_selected_bookmark_urls.activated.connect(self.open_selected_bookmark_urls)
 
         self.line_layout = QHBoxLayout()
         self.line_layout.addWidget(self.line)
@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
 
     def on_tags_button_clicked(self):
         """
-        window: tags_window
+        Toggle visibility of tags_window. 
         """
         if not hasattr(self, "tags_window"):
             self.tags_window = TagsWindow(self.table.table, self.height())
@@ -210,10 +210,14 @@ class MainWindow(QMainWindow):
             self.tags_window.activateWindow()
 
     def on_line_delete_button_clicked(self):
+        """Clear the SearchBar line."""
         self.line.clear()
 
     def go_to_search_bar(self):
-        # Toggle focus between search bar and first table cell
+        """
+        - Toggle focus between search bar and first table cell.
+        - Also show help_message showing hotkey for opening URLs of 
+          selected bookmarks in table."""
         if self.line.hasFocus():
             table_widget = self.table.table
             if table_widget.rowCount() and table_widget.columnCount():
@@ -225,6 +229,7 @@ class MainWindow(QMainWindow):
             self.help_message_table.hide()
 
     def on_button_details_clicked(self):
+        """Toggle visibility of extended_search_lines for name/url substrings."""
         if self.extended_search_line_url.isVisible():
             self.extended_search_line_url.hide()
             self.extended_search_line_name.hide()
@@ -235,7 +240,8 @@ class MainWindow(QMainWindow):
             self.extended_search_button.setText("▼Details")
 
     def open_selected_bookmarks(self):
-        self.open_selected_boomarks_urls()
+        """Open selected bookmarks in new tabs of the frontmost safari window."""
+        self.open_selected_bookmark_urls()
 
    
     def on_button_load_safari_bookmarks_updated(self):
@@ -254,7 +260,6 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(550, lambda: btn.setIcon(self.icon_reload_green)) # now-time +t2 
         QTimer.singleShot(1050, lambda: btn.setIcon(self.icon_reload)) # now-time +t3 
 
-    # RESIZE EVENTS 
     def resizeEvent(self, event):
         """Contains and calls all resize functions"""
         self.auto_resize(event)
