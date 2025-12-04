@@ -3,6 +3,7 @@ import pathlib
 from pathlib import Path
 import json
 from dataclasses import dataclass
+from typing import Iterable
 
 from services.settings import TAGS_JSON, BOOKMARKS_PLIST
 
@@ -23,12 +24,23 @@ class SafariBookmarks:
     url: str
 
 def load_safari_bookmarks(plist_path: str | Path) -> list[SafariBookmarks]:
+    """
+    Load Safari bookmarks from plist file.
+
+    Returns:
+        list[SafariBookmarks]: 
+            A list of SafariBookmarks dataclass instances, e.g.:
+            [
+                SafariBookmarks(name="Example", url="https://example.com"), ...
+            ]
+    """
     plist_path = Path(plist_path)
     if not plist_path.exists():
         # No Safari bookmarks yet (or Safari never opened) -> return empty set instead of crashing
         return []
 
     try:
+        # load Safari's bookmarks.plist
         with plist_path.open("rb") as f:
             root = plistlib.load(f)
     except Exception:
@@ -38,16 +50,42 @@ def load_safari_bookmarks(plist_path: str | Path) -> list[SafariBookmarks]:
     bookmarks: list[SafariBookmarks] = []
 
     def walk(node: dict):
-        # filders/containers 
+        """
+        Recursively traverse Safari bookmark containers and collect all leaf bookmark entries.
+
+        Each bookmark item may appear either as:
+            - modern structure:
+                {"WebBookmarkType": "WebBookmarkTypeLeaf",
+                "URLString": "...",
+                "URIDictionary": {"title": "..."} }
+            - older structure:
+                {"WebBookmarkType": "WebBookmarkTypeLeaf",
+                "URLString": "...",
+                "Title": "..." }
+
+        Folder/Container entries have:
+            {"WebBookmarkType": "WebBookmarkTypeList",
+            "Title":"MySubfolderName",
+            "Children": [
+                {"WebBookmarkType":  "...", "URLString": "...", "URIDictionary": {"title":"..."},
+                {...}]
+            }
+        """
+        # folders/containers 
         for child in node.get("Children",[]):
             if child.get("WebBookmarkType") == "WebBookmarkTypeLeaf" and "URLString" in child:
+                
                 title = (
-                    child.get("URIDictionary", {}).get("title") or child.get("Title") or ""
+                    # modern SafariBookmarks structure 
+                    child.get("URIDictionary", {}).get("title") 
+                    # older plist structure
+                    or child.get("Title") or ""
                 )
                 url=child["URLString"]
+                # append to list[SafariBookmarks]
                 bookmarks.append(SafariBookmarks(name=title, url=url))
 
-            # RECURSIVELY call function walk()
+            # recursively call function walk() to catch subfolders
             if "Children" in child:
                 walk(child)
 
@@ -56,6 +94,12 @@ def load_safari_bookmarks(plist_path: str | Path) -> list[SafariBookmarks]:
     return bookmarks
 
 def load_tags() -> dict[str, list[str]]:
+    """
+    Loads JSON file tags.json ofof structure
+    {url:["tag1","tag2",...], url:[...]}
+
+    Returns dict[]
+    """
     if not TAGS_JSON.exists():
         return {}
     with TAGS_JSON.open("r", encoding="utf-8") as f:
@@ -63,9 +107,20 @@ def load_tags() -> dict[str, list[str]]:
 
     bm_tags = {}
     for url, tags in data.items():
-        bm_tags[url] = tags if isinstance(tags, list) else str(tags).split(",")
+        # create dictionary entry with url as key and list[tags] as value
+        bm_tags[url] = normalize_tags(tags)
 
     return bm_tags
+
+def normalize_tags(tags):
+    if isinstance(tags, list):
+        iterable = tags 
+    elif isinstance(tags, str):
+        iterable = tags.split(",")
+    else:
+        raise TypeError(f"Unexpected tag type {type(tags)}")
+
+    return [tag.strip() for tag in iterable if tag.strip()]
 
 def save_tags(tag_map: dict[str, list[str]]) -> None: 
     with TAGS_JSON.open("w", encoding="utf-8") as f:
