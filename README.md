@@ -45,8 +45,7 @@ python -m pytest
 - Cmd+Mouse click: multi-select bookmark rows
 
 ### Buttons
-- Lights: Off / GUI / GUI + menu bar icon; checks every 2s if frontmost Safari tab is bookmarked (green exact, yellow (default: GUI+menu bar icon)
-domain, red none).
+- Lights: Off / GUI / GUI + menu bar icon; checks every 2s if frontmost Safari tab is bookmarked (green: exact, yellow: domain, red: none). Default: GUI+menu bar icon.
 - Color: set display colors for Name/URL/Tags.
 - Details: show URL/Name substring filters next to tag search.
 
@@ -54,3 +53,6 @@ domain, red none).
 This project uses the following open-source components:
 - PySide6 (LGPL-3.0) – https://wiki.qt.io/Qt_for_Python
 - RapidFuzz (MIT) – https://github.com/maxbachmann/RapidFuzz
+
+
+![GUI Screenshot](GITHUB/images/gui.png)
