@@ -108,7 +108,7 @@ def load_safari_bookmarks(plist_path: str | Path) -> list[SafariBookmarks]:
             if "Children" in child:
                 walk(child)
 
-    # function call 
+    # recursive function call for nested Children
     walk(root)
     return bookmarks
 
@@ -139,9 +139,11 @@ def load_tags() -> dict[str, list[str]]:
 
     return bm_tags
 
-
 def normalize_tags(tags: Any, url: str) -> list[str]:
-    
+    """Checks if tags are list elements.
+    If they are strings, converts them to list elements.
+    If they are neither, writes a warning to the logging file.
+    """
     if isinstance(tags, list):
         iterable = tags
     elif isinstance(tags, str):
@@ -155,10 +157,20 @@ def normalize_tags(tags: Any, url: str) -> list[str]:
     return [tag.strip() for tag in iterable if tag.strip()]
 
 def save_tags(tag_map: dict[str, list[str]]) -> None: 
-    with TAGS_JSON.open("w", encoding="utf-8") as f:
-        json.dump(tag_map, f, ensure_ascii=False, indent=2)
+    """Save and write tags to tags.json"""
+    with TAGS_JSON.open("w", encoding="utf-8") as file:
+        json.dump(tag_map, file, ensure_ascii=False, indent=2)
 
 def build_table_dict() -> dict[str, dict[str, str]]:
+    """
+    Build a mapping for the table view: 
+        1. load SafariBookmarks (name,url) from bookmarks.plist. 
+        2. load tags from tags.json (URL -> List of Tags).
+        3. Combine both to {display_name: {"url":url, "tags":"t1,t2"}}.
+
+    Returns:
+        dict[str,dict[str,str]]: display_name -> {"url": ..., "tags": comma-sep. tags}
+    """
     bookmarks = load_safari_bookmarks(BOOKMARKS_PLIST)
     tag_map = load_tags()
 
@@ -192,6 +204,7 @@ def load_config() -> dict:
         return DEFAULT_CONFIG.copy()
 
     # Basic safety: ensure top-level keys exist
+    # Else load default color scheme
     cfg = DEFAULT_CONFIG.copy()
     cfg["colors"].update(data.get("colors", {}))
     return cfg

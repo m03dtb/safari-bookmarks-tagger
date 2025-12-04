@@ -2,12 +2,11 @@ import subprocess
 from urllib.parse import unquote, quote
 from unicodedata import normalize as uni_normalize
 
-from PySide6.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView, 
+from PySide6.QtWidgets import (QTableWidget, QTableWidgetItem, QAbstractItemView,
         QHeaderView, QLabel)
 from PySide6.QtCore import Qt, QItemSelectionModel
 
 from helper_functions import load_config
-import ui.colors 
 
 
 class Table():
@@ -15,14 +14,13 @@ class Table():
         super().__init__()
         self.table = QTableWidget()
         self.mydict = mydict
-        self.colors = ui.colors
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.extended_search_line_url = extended_search_line_url
         self.extended_search_line_name = extended_search_line_name
 
         config = load_config()
-        self.colors = config.get("colors", {})
+        self.colors: dict[str, str] = config.get("colors", {})
 
         # define colors 
         self.col_name = self.colors.get("col_name")
@@ -176,10 +174,10 @@ class Table():
 
                 # url_match if url_substring empty
                 if not url_substring:
-                    url_match:bool = True 
+                    url_match = True
                 else:
                     # url match if any url_text variant in any url_substring variant
-                    url_match:bool = (
+                    url_match = (
                         # TODO: minimize variants
                         url_substring in url_text
                         or url_substring_dec in url_text
@@ -193,10 +191,10 @@ class Table():
                 name_text = name_item.text().lower() if name_item else ""
                 # name_match if name_substring empty or substring of name_text 
                 # -> allows only one single consecutive substring of name_text
-                name_match:bool = (not name_substring) or (name_substring in name_text)
+                name_match: bool = (not name_substring) or (name_substring in name_text)
 
                 # MATCH if ALL SUBCATEGORIES (tags, url, name) are True (empty possible)
-                match:bool = tag_match and url_match and name_match
+                match: bool = tag_match and url_match and name_match
                 table.setRowHidden(row, not match)
 
                 if not match: # if a row is no match 
@@ -220,7 +218,7 @@ class Table():
             table.setUpdatesEnabled(True)
         # available tags, i.e. tags-set of visible table rows 
         # minus set of tags selected via dropdown
-        self.set_of_tags: set = visible_tags - used_tags
+        self.set_of_tags = visible_tags - used_tags
                 
     def open_selected_boomarks_urls(self):
         """desc: opens each selected entry in a separate new Safari tab"""
