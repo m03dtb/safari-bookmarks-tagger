@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 
 from helper_functions import * 
 
+
 class TagsWindow(QWidget):
     def __init__(self, table, height) -> None:
         super().__init__()
@@ -60,7 +61,6 @@ class TagsWindow(QWidget):
 
         self.populate_tag_checkboxes()
 
-
     def populate_tag_checkboxes(self):
         for cb in self.tag_checkboxes:
             cb.setParent(None)
@@ -87,7 +87,6 @@ class TagsWindow(QWidget):
             cb = QCheckBox(tag)
             self.checkboxes_layout.addWidget(cb)
             self.tag_checkboxes.append(cb)
-
 
     def add_tags(self):
         # 1) get comma-separated tags from search bar entry field 

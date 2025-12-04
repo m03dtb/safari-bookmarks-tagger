@@ -21,8 +21,6 @@ class BookmarkWatcher(QObject):
         # react to changes in plist 
         self.watcher.fileChanged.connect(self.on_changed)
 
-
-
     def on_changed(self, plist_path):
         """Function called when Safari's bookmarks.plist has changed"""
 
@@ -36,7 +34,6 @@ class BookmarkWatcher(QObject):
 
         if added_bookmark:
             self.bookmark_added.emit(added_bookmark)
-
 
     def detect_new_bookmark(self, old, new):
         """Compares old and new bookmarks plist and examines newly added bookmark"""

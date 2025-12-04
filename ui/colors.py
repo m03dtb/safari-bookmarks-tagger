@@ -22,7 +22,6 @@ class ColorSettingsDialog(QDialog):
         self.label_preview = QLabel("Colors")
         layout.addWidget(self.label_preview)
 
-
         self.col_name = QLineEdit()
         self.col_name.setText(self.colors.get("col_name", ""))
         self.col_url = QLineEdit()

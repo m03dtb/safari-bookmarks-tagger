@@ -22,6 +22,7 @@ class LightIcons:
         self.lights_yellow = QIcon(str(ICON_DIR / "lights_yellow.svg"))
         self.lights_red = QIcon(str(ICON_DIR / "lights_red.svg"))
 
+
 class BookmarkStatus(QObject):
     """Periodically check if Safari's frontmost URL has changed"""
     # emits: "full" | "domain" | "none" | None (no Safari window)
@@ -177,7 +178,6 @@ class BookmarkStatus(QObject):
             self.last_url_state = "domain"
         else:
             self.last_url_state = "none"
-
 
         # NOTIFY MainWindow so it can update the icon 
         self.bookmark_checked.emit(self.last_url_state)

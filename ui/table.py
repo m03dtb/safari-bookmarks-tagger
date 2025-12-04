@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt, QItemSelectionModel
 from helper_functions import load_config
 import ui.colors 
 
+
 class Table():
     def __init__(self, mydict, extended_search_line_url, extended_search_line_name) -> None:
         super().__init__()
@@ -147,7 +148,6 @@ class Table():
         if self.extended_search_line_name is not None:
             name_substring = (self.extended_search_line_name.text() or "").strip().lower()
 
-
         visible_tags = set()
 
         try: 
@@ -281,6 +281,7 @@ class Table():
 
     def reload(self, mydict):
         self.mydict = mydict
+
         table = self.table
         table.clearContents()
         table.setRowCount(len(mydict.keys()))
