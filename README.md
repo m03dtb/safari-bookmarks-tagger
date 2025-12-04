@@ -33,18 +33,24 @@ python -m pytest
 ```
 
 ## Usage 
-### Hotkeys (Cmd/Meta)
-- Cmd+R: reload Safari bookmarks
-- Cmd+T: open/close tag window
-- Cmd+S: focus search bar; Enter applies first suggested tag
-- Cmd+C: clear tag search (not URL/name filters)
-- Cmd+X: open selected bookmarks in new Safari tabs
-- Cmd+I: invert tag selection (in tag window)
-- Cmd+D: delete selected tags (in tag window)
-- Cmd+Click: multi-select bookmark rows
+### Hotkeys
+- Ctrl+R: reload Safari bookmarks
+- Ctrl+T: open/close tag window
+- Ctrl+S: focus search bar; Enter applies first suggested tag
+- Ctrl+C: clear tag search (not URL/name filters)
+- Ctrl+X: open selected bookmarks in new Safari tabs
+- Ctrl+I: invert tag selection (in tag window)
+- Ctrl+D: delete selected tags (in tag window)
+
+- Cmd+Mouse click: multi-select bookmark rows
 
 ### Buttons
-- Lights: Off / GUI / GUI + menu bar icon; checks every 2s if frontmost Safari tab is bookmarked (green exact, yellow
+- Lights: Off / GUI / GUI + menu bar icon; checks every 2s if frontmost Safari tab is bookmarked (green exact, yellow (default: GUI+menu bar icon)
 domain, red none).
 - Color: set display colors for Name/URL/Tags.
 - Details: show URL/Name substring filters next to tag search.
+
+## Third-Party Licenses
+This project uses the following open-source components:
+- PySide6 (LGPL-3.0) – https://wiki.qt.io/Qt_for_Python
+- RapidFuzz (MIT) – https://github.com/maxbachmann/RapidFuzz
