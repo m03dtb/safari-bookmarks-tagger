@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         self.icons = LightIcons()
         self.bookmark_status = BookmarkStatus(self)
         # cycle through off -> window -> menubar
-        self.lights_mode = "off"
+        self.lights_mode = "menubar"
 
         # button_lights setup
         self.button_lights.setIcon(self.icons.lights_off)
@@ -92,6 +92,8 @@ class MainWindow(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self.icons.lights_off, self)
         self.tray_icon.setToolTip("Safari bookmark status")
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
+        # enable menubar mode on launch
+        self.apply_lights_mode()
             
         self.dropdown = QListWidget()
         self.dropdown.hide()
@@ -268,6 +270,10 @@ class MainWindow(QMainWindow):
         mode_order = {"off": "window", "window": "menubar", "menubar": "off"}
         self.lights_mode = mode_order.get(self.lights_mode, "off")
 
+        self.apply_lights_mode()
+
+    def apply_lights_mode(self):
+        """Apply current lights_mode value and update UI/tray."""
         if self.lights_mode == "off":
             self.bookmark_status.stop()
             self.button_lights.setIcon(self.icons.lights_off)
