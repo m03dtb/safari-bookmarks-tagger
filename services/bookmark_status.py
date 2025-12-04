@@ -2,6 +2,7 @@ import os
 import subprocess
 import textwrap
 import plistlib
+from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlparse, unquote, quote
 from unicodedata import normalize as uni_normalize
@@ -11,6 +12,41 @@ from PySide6.QtCore import QObject, QTimer, Signal
 
 
 ICON_DIR = Path(__file__).resolve().parent.parent / "icons"
+IGNORED_DOMAIN_PARTS = {"co", "com", "org", "net", "gov", "ac"}
+
+
+def _is_ip(host: str) -> bool:
+    try:
+        ip_address(host)
+    except ValueError:
+        return False
+    return True
+
+
+def base_domain(host: str) -> str:
+    """
+    Return a coarse eTLD+1 without pulling a full suffix list.
+
+    Common country/company inserts like ".co." or ".com." are ignored when they
+    appear between dots, so "foo.co.uk" -> "foo.uk" and "bar.com.au" -> "bar.au".
+    """
+    host = (host or "").lower().strip()
+    if not host:
+        return ""
+    if _is_ip(host):
+        return host
+
+    parts = host.split(".")
+    if len(parts) == 1:
+        return host
+
+    # drop ignorable middle parts, keep the final TLD
+    filtered = [p for p in parts[:-1] if p not in IGNORED_DOMAIN_PARTS]
+    filtered.append(parts[-1])
+
+    if len(filtered) >= 2:
+        return ".".join(filtered[-2:])
+    return filtered[0]
 
 
 class LightIcons:

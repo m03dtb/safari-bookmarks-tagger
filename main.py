@@ -261,6 +261,9 @@ class MainWindow(QMainWindow):
         self.mydict = build_table_dict()
         # fill existing table with the new data 
         self.table.reload(self.mydict)
+        # refresh lights so the indicator reacts to the new bookmark set
+        if self.lights_mode != "off":
+            self.bookmark_status.check_frontmost_url_changed(force=True)
         # short visual feedback on reload button
         old_style = btn.styleSheet()
         btn.setIcon(self.icon_reload_green) # now-time 
