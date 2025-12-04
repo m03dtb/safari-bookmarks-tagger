@@ -41,7 +41,7 @@ class Table():
         # set of all available tags (filtered)
         self.set_of_tags = set(all_tags)
 
-        # CREATE TABLE
+        # CREATE TABLE with the Bookmarks
         table  = self.table 
         table.setRowCount(len(mydict.keys()))
         header_labels = ["Bookmarks", "URL", "Tags", "Name"]
@@ -55,21 +55,22 @@ class Table():
 
         table.verticalHeader().hide() # hide row numbers
 
-        # Create a set of all available tags
+        # Create a set of all available tags (no pre-filtering)
         all_tags = set()
         for value in self.mydict.values():
+            # split the comma-separated tags by comma
             for tag in value["tags"].split(","):
                 tag = tag.strip()
                 if tag:
+                    # add the tags to the set 
                     all_tags.add(tag)
 
         self.fill_table(mydict)
 
-
     def fill_table(self, mydict):
         table = self.table
         # name of bookmark, data containing url and tags
-        # example of how the mydict dict looks like: 
+        # example of how the mydict dict looks like:
         # {name : {"url": "...", "tags": "tag1,tag2"} }
         for row, (name, data) in enumerate(mydict.items()):
             url = data["url"]
@@ -89,6 +90,7 @@ class Table():
             label.setTextFormat(Qt.TextFormat.RichText)
             label.setWordWrap(True)
             label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            label.setMinimumHeight(100)
 
             # show the Name/URL/Tags Combo as one label per bookmark entry
             table.setCellWidget(row, 0, label)
@@ -107,7 +109,6 @@ class Table():
         # forces height calculation after filling the table 
         table.resizeRowsToContents()
 
-    # other functions
     def get_all_tags(self) -> list[str]:
         """desc: returns sorted list of tags"""
         return sorted(self.set_of_tags)
@@ -215,10 +216,10 @@ class Table():
                     visible_tags.update(row_tags)
 
         finally:
-            # re-renders the table
+            # re-render the table
             table.setUpdatesEnabled(True)
         # available tags, i.e. tags-set of visible table rows 
-        # minus tags selected via dropdown (set)
+        # minus set of tags selected via dropdown
         self.set_of_tags: set = visible_tags - used_tags
                 
     def open_selected_boomarks_urls(self):
@@ -241,8 +242,9 @@ class Table():
         # create comma-separated string of list of urls to open
         url_list = ",".join(f'"{u}"' for u in list_of_urls_to_open)
 
-        # Apple Script to open each selected bookmark entry 
-        # in a separate new tab and put window to the front
+        # Apple Script:
+        # - open each selected bookmark entry 
+        # - ensure Safari window is the frontmost window
         script = f'''set theURLs to {{{url_list}}}
 
         tell application "Safari"
@@ -280,6 +282,7 @@ class Table():
         self.reload(self.mydict)
 
     def reload(self, mydict):
+        """Clears the existing table and reloads its content"""
         self.mydict = mydict
 
         table = self.table

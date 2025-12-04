@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         self.button.setIconSize(QSize(32,32))
         self.button.setFlat(True)
         self.button.setStyleSheet("background: none; border: 0;")
-        self.button.setToolTip("Add/Delete all selected tags > select by holding Cmd and tipping on entries")
+        self.button.setToolTip("Add/Delete tags of selected bookmarks> select by holding Cmd and tipping on entries")
 
         self.button_lights = QPushButton()
 

@@ -28,7 +28,7 @@ python main.py
 ## Tests
 Run the small pytest suite for helper logic and the Safari status wrapper:
 ```bash
-pip install pytest
+# pytest is included in requirements.txt
 python -m pytest
 ```
 

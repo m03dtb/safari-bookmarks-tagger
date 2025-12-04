@@ -12,15 +12,14 @@ class ColorSettingsDialog(QDialog):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Choose layout colors")
+        self.setWindowTitle("Layout colors")
+        self.setFixedSize(200,300)# width, height
 
-        self.config = load_config()
+        self.config = load_config() # loads config.json
+        # read col_name, col_url, col_tags from config
         self.colors = self.config["colors"]
 
         layout = QVBoxLayout(self)
-
-        self.label_preview = QLabel("Colors")
-        layout.addWidget(self.label_preview)
 
         self.col_name = QLineEdit()
         self.col_name.setText(self.colors.get("col_name", ""))
@@ -43,12 +42,13 @@ class ColorSettingsDialog(QDialog):
 
     def on_save(self) -> None:
         """Save config and close dialog."""
-        # Werte aus den Eingabefeldern holen
+        # Get values from the textEdit field
         self.colors["col_name"] = self.col_name.text()
         self.colors["col_url"] = self.col_url.text()
         self.colors["col_tags"] = self.col_tags.text()
 
-        # zurück in config schreiben und speichern
+        # write the newly entered color settings to config file
+        # and overwrite older or default color schemes permanently
         self.config["colors"] = self.colors
         save_config(self.config)
         self.colors_changed.emit(self.colors)
