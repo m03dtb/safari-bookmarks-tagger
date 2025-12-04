@@ -210,8 +210,16 @@ class MainWindow(QMainWindow):
             self.tags_window.activateWindow()
 
     def on_line_delete_button_clicked(self):
-        """Clear the SearchBar line."""
+        """Clear  SearchBar, URL and Name Search filters.
+        Reloads the tags and fills table and dropdown menu."""
         self.line.clear()
+        self.extended_search_line_name.clear()
+        self.extended_search_line_url.clear()
+        # force refresh 
+        self.table.filter_table("", set())
+        self.dropdown.clear()
+        for tag in self.table.get_all_tags():
+            self.dropdown.addItem(tag)
 
     def go_to_search_bar(self):
         """
@@ -388,6 +396,7 @@ class MainWindow(QMainWindow):
         return False
 
     def on_new_bookmark(self, item_dict):
+        """Focus the new bookmark added to Safari Bookmarks in the Table."""
         url = item_dict.get("URLString")
         if not url:
             return
