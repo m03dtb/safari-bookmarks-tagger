@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from PySide6.QtGui import QKeySequence, QShortcut, QIcon
-from PySide6.QtCore import Qt, QTimer, QSize, QItemSelectionModel
+from PySide6.QtCore import Qt, QTimer, QSize, QItemSelectionModel, QEvent
 from PySide6.QtWidgets import (
     QApplication, QBoxLayout, QWidget, QMainWindow, QPushButton,
     QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QListWidget, QSystemTrayIcon,
@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
         self.icon_clear = QIcon(str(icon_dir / "clear_icon.svg"))
 
 
-        self.setGeometry(0, 0, 700, height)
+        self.setGeometry(0, 0, 400, height)
         self.setWindowTitle("BookmarksTagger")
 
         self._plist_missing_warned = False
@@ -118,6 +118,10 @@ class MainWindow(QMainWindow):
         # self.set_of_tags = None 
 
         self.table = Table(self.mydict, self.extended_search_line_url, self.extended_search_line_name)
+        self.table.table.installEventFilter(self)
+
+        self.help_message_table = QLabel("Open selected Bookmark(s) with Ctrl+X")
+        self.help_message_table.hide()
 
         self.line = LineEdit(self.table, self.dropdown)
         self.line.setPlaceholderText("[s]")
@@ -132,7 +136,7 @@ class MainWindow(QMainWindow):
         self.button.clicked.connect(self.on_tags_button_clicked)
         self.shortcut_button = QShortcut(QKeySequence("Meta+T"), self)
         # make shortcut globally accessible 
-        self.shortcut_button.setContext(Qt.ShortcutContext.ApplicationShortcut)  # <── das fehlt
+        self.shortcut_button.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self.shortcut_button.activated.connect(self.on_tags_button_clicked)
 
         self.line_delete_button.clicked.connect(self.on_line_delete_button_clicked)
@@ -161,15 +165,18 @@ class MainWindow(QMainWindow):
         self.button_layout2.addWidget(self.color_button)
         self.button_layout2.addWidget(self.button_lights)
 
+
         # LAYOUT 
         upper_layout = QHBoxLayout()
         upper_layout2= QHBoxLayout()
+        self.upper_layout_help_message = QHBoxLayout()
         middle_layout = QHBoxLayout()
         bottom_layout = QVBoxLayout()
         main_layout = QVBoxLayout()
 
         upper_layout.addLayout(button_layout)
         upper_layout2.addLayout(self.button_layout2)
+        self.upper_layout_help_message.addWidget(self.help_message_table)
         middle_layout.addWidget(self.table.table)
         bottom_layout.addLayout(self.line_layout)
         bottom_layout.addWidget(self.dropdown)
@@ -178,6 +185,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(upper_layout)
         main_layout.addLayout(upper_layout2)
+        main_layout.addLayout(self.upper_layout_help_message)
         main_layout.addLayout(middle_layout)
         main_layout.addLayout(bottom_layout)
 
@@ -210,8 +218,10 @@ class MainWindow(QMainWindow):
             if table_widget.rowCount() and table_widget.columnCount():
                 table_widget.setCurrentCell(0, 0)
             table_widget.setFocus()
+            self.help_message_table.show()
         else:
             self.line.setFocus()
+            self.help_message_table.hide()
 
     def on_button_details_clicked(self):
         if self.extended_search_line_url.isVisible():
@@ -251,7 +261,7 @@ class MainWindow(QMainWindow):
 
     def auto_resize(self, event):
         """Reorder elements vertically if small width"""
-        if self.width() < 400:
+        if self.width() < 300:
             self.line_layout.setDirection(QBoxLayout.TopToBottom)
         else:
             self.line_layout.setDirection(QBoxLayout.LeftToRight)
@@ -390,6 +400,16 @@ class MainWindow(QMainWindow):
         self.tags_window.raise_()
         self.tags_window.activateWindow()
         self.tags_window.tags_input_field.setFocus()
+
+    def eventFilter(self, obj, event):
+        """Show a small hint for hotkeys to open url(s)
+        when the table gains focus."""
+        if obj is self.table.table:
+            if event.type() == QEvent.Type.FocusIn:
+                self.help_message_table.show()
+            elif event.type() == QEvent.Type.FocusOut:
+                self.help_message_table.hide()
+        return super().eventFilter(obj, event)
 
 def main():
     app = QApplication(sys.argv)
