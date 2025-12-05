@@ -12,3 +12,4 @@ uninstall_exe.sh
 bm_pro.spec
 tags.json.bak
 mypy.ini
+bookmarks_tagger.log
