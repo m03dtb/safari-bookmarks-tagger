@@ -13,3 +13,4 @@ bm_pro.spec
 tags.json.bak
 mypy.ini
 bookmarks_tagger.log
+.mailmap-filter
