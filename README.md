@@ -12,8 +12,8 @@ Desktop app (PySide6) for searching, tagging, and opening Safari bookmarks on ma
 ## Setup
 ```bash
 git clone --depth 1 https://github.com/m03dtb/safari-bookmarks-tagger.git
-cd BookmarksTagger
-python -m venv venv
+cd safari-bookmarks-tagger
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
