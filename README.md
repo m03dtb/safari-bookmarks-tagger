@@ -33,6 +33,16 @@ python -m pytest
 ```
 
 ## Usage 
+Please consider that creating and deleting bookmarks still has to be done within Safari.
+
+### Creating new tags
+Immediately after a new bookmark is created in Safari, a window for entering tags for 
+the new bookmark opens automatically.
+
+### Updating Safari bookmarks 
+The entries in the tags.json are updated when calling load_tags() so Bookmarks deleted in Safari will 
+no longer be available in the app as intended.
+
 ### Hotkeys
 - Ctrl+R: reload Safari bookmarks
 - Ctrl+T: open/close tag window

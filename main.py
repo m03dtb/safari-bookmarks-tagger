@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
 
    
     def on_button_load_safari_bookmarks_updated(self):
-        """get data from bookmarks plist and save them as dict"""
+        """Get data from bookmarks plist and save them as dict"""
         btn = self.button_update_safari_bookmarks
         if not BOOKMARKS_PLIST.exists():
             self.warn_no_bookmarks_plist()

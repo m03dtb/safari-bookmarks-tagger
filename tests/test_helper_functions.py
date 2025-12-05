@@ -1,3 +1,4 @@
+import json
 import plistlib
 from pathlib import Path
 
@@ -57,3 +58,69 @@ def test_build_table_dict_disambiguates_names(tmp_path, monkeypatch):
     assert "Example (2)" in table
     assert table["Example"]["url"] == "https://example.com"
     assert table["Example (2)"]["url"] == "https://example.org"
+
+
+def test_load_tags_filters_unknown_urls(tmp_path, monkeypatch):
+    tags_json = tmp_path / "tags.json"
+    tags_json.write_text(
+        json.dumps(
+            {
+                "https://example.com": ["tag1", "tag2"],
+                "https://old-site.com": ["unused"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bookmarks = [hf.SafariBookmarks(name="Example", url="https://example.com")]
+
+    monkeypatch.setattr(hf, "TAGS_JSON", tags_json)
+
+    tags = hf.load_tags(bookmarks)
+
+    assert tags == {"https://example.com": ["tag1", "tag2"]}
+
+
+def test_load_tags_without_bookmark_filter(tmp_path, monkeypatch):
+    tags_json = tmp_path / "tags.json"
+    tags_json.write_text(
+        json.dumps(
+            {
+                "https://example.com": ["tag1"],
+                "https://old-site.com": ["unused"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(hf, "TAGS_JSON", tags_json)
+
+    tags = hf.load_tags()
+
+    assert tags == {
+        "https://example.com": ["tag1"],
+        "https://old-site.com": ["unused"],
+    }
+
+
+def test_load_tags_prunes_deleted_bookmarks(tmp_path, monkeypatch):
+    tags_json = tmp_path / "tags.json"
+    tags_json.write_text(
+        json.dumps(
+            {
+                "https://example.com": ["tag1"],
+                "https://old-site.com": ["unused"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bookmarks = [hf.SafariBookmarks(name="Example", url="https://example.com")]
+
+    monkeypatch.setattr(hf, "TAGS_JSON", tags_json)
+
+    tags = hf.load_tags(bookmarks)
+
+    assert tags == {"https://example.com": ["tag1"]}
+    # tags.json should be rewritten without stale URLs
+    assert json.loads(tags_json.read_text(encoding="utf-8")) == {
+        "https://example.com": ["tag1"]
+    }

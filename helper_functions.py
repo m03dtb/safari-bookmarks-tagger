@@ -112,7 +112,7 @@ def load_safari_bookmarks(plist_path: str | Path) -> list[SafariBookmarks]:
     walk(root)
     return bookmarks
 
-def load_tags() -> dict[str, list[str]]:
+def load_tags(bookmarks: list[SafariBookmarks] | None = None) -> dict[str, list[str]]:
     """
     Load bookmark tags from tags.json.
 
@@ -132,10 +132,23 @@ def load_tags() -> dict[str, list[str]]:
     with TAGS_JSON.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    bm_tags:dict[str,list[str]] = {}
+    # set of bookmark urls stored in Safari Bookmarks  
+    bookmark_urls = {bm.url for bm in bookmarks} if bookmarks is not None else None
+    bm_tags: dict[str, list[str]] = {}
+    removed_stale: bool = False
     for url, tags in data.items():
+        # if the url is no longer in the bookmarks ...
+        if bookmark_urls is not None and url not in bookmark_urls:
+            # ... do NOT consider it any more 
+            removed_stale = True
+            continue
         # create dictionary entry with url as key and list[tags] as value
         bm_tags[url] = normalize_tags(tags, url)
+
+    # Only call save_tags() if there were deletions in the Safari bookmarks 
+    # not yet updated in the tags.json
+    if removed_stale and bookmarks is not None:
+        save_tags(bm_tags) # overwrite tags.json 
 
     return bm_tags
 
@@ -172,7 +185,7 @@ def build_table_dict() -> dict[str, dict[str, str]]:
         dict[str,dict[str,str]]: display_name -> {"url": ..., "tags": comma-sep. tags}
     """
     bookmarks = load_safari_bookmarks(BOOKMARKS_PLIST)
-    tag_map = load_tags()
+    tag_map = load_tags(bookmarks)
 
     table_dict: dict[str, dict[str, str]] = {}
     name_counter: dict[str, int] = {}

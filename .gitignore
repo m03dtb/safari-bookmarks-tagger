@@ -3,7 +3,6 @@ TEST/
 ALT/
 config.json
 __pycache__/
-main_chatgpt.py
 tags.json
 .DS_Store
 build_exe.sh
