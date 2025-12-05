@@ -8,6 +8,7 @@ from services.bookmark_status import BookmarkStatus, base_domain
 
 @pytest.fixture(scope="session", autouse=True)
 def qt_app():
+    """Instantiate a QCoreApplication each time test is run."""
     app = QCoreApplication.instance()
     if app is None:
         app = QCoreApplication([])
@@ -21,20 +22,29 @@ class FakeResult:
 
 
 def test_applescript_error_emits_error(monkeypatch):
+    """
+    Assert that apple script error is correctly caught.
+    """
     bs = BookmarkStatus()
     emitted = []
     bs.bookmark_checked.connect(emitted.append)
 
+    # monkeypatch guarantees that subprocess.run() in services.bookmark_status
+    # will always return a returncode=1 (error)
     monkeypatch.setattr(
         "services.bookmark_status.subprocess.run",
         lambda *args, **kwargs: FakeResult(returncode=1, stdout=""),
     )
 
+    # calling check_frontmost_url_changed(), it is expected that last emittet Signal 
+    # is "error", i.e. error is caught and asserted
     bs.check_frontmost_url_changed()
     assert emitted[-1] == "error"
 
 
 def test_no_window_emits_none(monkeypatch):
+    """Make sure check_frontmost_url_changed correctly catches the case 
+    where no Safari window is open."""
     bs = BookmarkStatus()
     emitted = []
     bs.bookmark_checked.connect(emitted.append)
@@ -49,6 +59,9 @@ def test_no_window_emits_none(monkeypatch):
 
 
 def test_base_domain_ignores_common_inserts():
+    """Checks if services/bookmark_status.py correctly handles 
+    ignoring common second-level ccTLD inserts under country TLDs.
+    """
     assert base_domain("foo.co.uk") == "foo.uk"
     assert base_domain("bar.com.au") == "bar.au"
     assert base_domain("example.com") == "example.com"
