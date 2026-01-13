@@ -18,6 +18,8 @@ class Table():
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.extended_search_line_url = extended_search_line_url
         self.extended_search_line_name = extended_search_line_name
+        self.last_filter_text = ""
+        self.last_used_tags: set[str] = set()
 
         config = load_config()
         self.colors: dict[str, str] = config.get("colors", {})
@@ -121,6 +123,8 @@ class Table():
 
         # create empty set if no tags are used as filters yet
         used_tags = used_tags or set()
+        self.last_filter_text = filter_text
+        self.last_used_tags = set(used_tags)
         
         # create filter_tags list (deleting spaces and empty strings)
         filter_tags = [
@@ -219,6 +223,10 @@ class Table():
         # available tags, i.e. tags-set of visible table rows 
         # minus set of tags selected via dropdown
         self.set_of_tags = visible_tags - used_tags
+
+    def refresh_filter(self) -> None:
+        """Re-apply the last filter after tag changes."""
+        self.filter_table(self.last_filter_text, set(self.last_used_tags))
                 
     def open_selected_bookmark_urls(self):
         """desc: opens each selected entry in a separate new Safari tab"""

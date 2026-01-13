@@ -10,7 +10,7 @@ from helper_functions import *
 
 
 class TagsWindow(QWidget):
-    def __init__(self, table, height) -> None:
+    def __init__(self, table_obj, height) -> None:
         super().__init__()
         self.setWindowTitle("Add / Delete Tags")
 
@@ -20,7 +20,8 @@ class TagsWindow(QWidget):
        
         self.status_label_1 = QLabel("INFO: Adds tags to your selected bookmarks")
         self.status_label_2 = QLabel("Exit with <Ctrl> T")
-        self.table = table
+        self.table_obj = table_obj
+        self.table = table_obj.table
         self.tags_input_field = QLineEdit()
         self.add_button = QPushButton("Add Tag [Enter]")
         self.add_button.clicked.connect(self.add_tags)
@@ -227,3 +228,4 @@ class TagsWindow(QWidget):
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.resizeRowsToContents()
+        self.table_obj.refresh_filter()

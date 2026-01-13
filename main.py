@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
         Toggle visibility of tags_window. 
         """
         if not hasattr(self, "tags_window"):
-            self.tags_window = TagsWindow(self.table.table, self.height())
+            self.tags_window = TagsWindow(self.table, self.height())
 
         if self.tags_window.isVisible():
             self.tags_window.close()
@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
         self.select_bookmark_by_url(url)
 
         if not hasattr(self, "tags_window"):
-            self.tags_window = TagsWindow(self.table.table, self.height())
+            self.tags_window = TagsWindow(self.table, self.height())
 
         self.tags_window.populate_tag_checkboxes()
         self.tags_window.show()
